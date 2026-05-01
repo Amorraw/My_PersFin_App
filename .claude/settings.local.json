@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "PowerShell(Get-Service -Name \"MongoDB\" -ErrorAction SilentlyContinue)",
+      "PowerShell(mongod --version 2>$null)",
+      "PowerShell(Start-Service -Name \"MongoDB\")",
+      "PowerShell(Get-Service -Name \"MongoDB\")",
+      "Read(//c/Program Files/MongoDB/Server/8.0/data/**)",
+      "Read(//c/Program Files/MongoDB/Server/8.0/bin/**)"
+    ]
+  }
+}

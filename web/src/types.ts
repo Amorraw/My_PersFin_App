@@ -13,6 +13,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  province?: string;
 }
 
 export interface Account {

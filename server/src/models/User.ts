@@ -5,6 +5,7 @@ export interface IUser extends Document {
   passwordHash: string;
   firstName?: string;
   lastName?: string;
+  province?: string;
   resetToken?: string;
   resetTokenExpires?: Date;
   createdAt: Date;
@@ -15,6 +16,7 @@ const userSchema = new Schema<IUser>({
   passwordHash: { type: String, required: true },
   firstName: String,
   lastName: String,
+  province: { type: String, default: "ON" },
   resetToken: String,
   resetTokenExpires: Date,
   createdAt: { type: Date, default: Date.now }

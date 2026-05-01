@@ -1,6 +1,6 @@
 .net-worth-container {
-  padding: 2rem;
-  max-width: 1400px;
+  padding: 0;
+  max-width: 1050px;
   margin: 0 auto;
 }
 
@@ -8,47 +8,47 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .net-worth-header h1 {
-  font-size: 2rem;
+  font-size: 0.92rem;
   color: #111827;
   margin: 0;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .summary-card {
   background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .summary-label {
-  font-size: 0.875rem;
-  color: #6B7280;
-  margin-bottom: 0.5rem;
+  font-size: 0.68rem;
+  color: #666;
+  margin-bottom: 3px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
 }
 
 .summary-value {
-  font-size: 1.875rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.15rem;
 }
 
 .summary-change {
-  font-size: 0.875rem;
+  font-size: 0.72rem;
   color: #10B981;
 }
 
@@ -72,89 +72,92 @@
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .chart-card {
   background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chart-card h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 6px 0;
   color: #111827;
-  font-size: 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .trends-card {
   background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
 }
 
 .trends-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 6px;
 }
 
 .trends-header h3 {
   margin: 0;
   color: #111827;
-  font-size: 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .trends-header select {
-  padding: 0.5rem 1rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
   background: white;
-  font-size: 0.875rem;
+  font-size: 0.72rem;
 }
 
 .breakdown-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
 }
 
 .breakdown-column {
   background: white;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .breakdown-column h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 6px 0;
   color: #111827;
-  font-size: 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .breakdown-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 6px;
 }
 
 .breakdown-item {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem;
+  padding: 0.4rem 0.5rem;
   background: #F9FAFB;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.72rem;
 }
 
 .breakdown-item.total {

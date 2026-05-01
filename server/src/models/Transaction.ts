@@ -9,6 +9,9 @@ export interface ITransaction extends Document {
   description?: string;
   date: Date;
   statementBalance?: number | null;
+  plaidTransactionId?: string;
+  plaidAccountId?: string;
+  source?: "manual" | "csv" | "plaid";
   createdAt: Date;
 }
 
@@ -24,8 +27,13 @@ const transactionSchema = new Schema<ITransaction>({
   category: String,
   description: String,
   date: { type: Date, default: Date.now },
-  statementBalance: { type: Number, required: false, default: null },
-  createdAt: { type: Date, default: Date.now }
+  statementBalance:    { type: Number, required: false, default: null },
+  plaidTransactionId:  { type: String, sparse: true },
+  plaidAccountId:      { type: String },
+  source:              { type: String, enum: ["manual", "csv", "plaid"], default: "manual" },
+  createdAt:           { type: Date, default: Date.now }
 });
+
+transactionSchema.index({ userId: 1, plaidTransactionId: 1 }, { unique: true, sparse: true });
 
 export const Transaction = mongoose.model<ITransaction>("Transaction", transactionSchema);

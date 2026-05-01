@@ -23,6 +23,16 @@ import taxRoutes from "./routes/tax";
 import goalsRoutes from "./routes/goals";
 import netWorthRoutes from "./routes/netWorth";
 import billsRoutes from "./routes/bills";
+import propertiesRoutes from "./routes/properties";
+import gicRoutes from "./routes/gic";
+import portfolioRoutes from "./routes/portfolio";
+import insuranceRoutes from "./routes/insurance";
+import incomeRoutes from "./routes/income";
+import notificationsRoutes from "./routes/notifications";
+import reportsRoutes from "./routes/reports";
+import recurringRoutes from "./routes/recurring";
+import plaidRoutes from "./routes/plaid";
+import { startScheduler } from "./jobs/scheduler";
 
 const app = express();
 
@@ -35,16 +45,19 @@ app.use(cors({
 }));
 
 // Request logging middleware
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
 app.use(express.json({ limit: '50mb' }));
 
-const store = new MongoStore({ 
+const SESSION_TTL_SEC = 7 * 24 * 60 * 60; // 7 days, matches cookie maxAge
+
+const store = new MongoStore({
   mongoUrl: MONGO_URI,
-  touchAfter: 24 * 3600 // lazy session update
+  ttl: SESSION_TTL_SEC,
+  touchAfter: 24 * 3600 // only update the TTL once per day unless data changes
 });
 
 store.on("error", (err) => {
@@ -60,7 +73,8 @@ app.use(
     cookie: {
       secure: false,       // set true + trust proxy in production with HTTPS
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      sameSite: 'lax',
+      maxAge: SESSION_TTL_SEC * 1000
     }
   })
 );
@@ -84,9 +98,18 @@ app.use("/api/tax-accounts", taxRoutes);
 app.use("/api/goals", goalsRoutes);
 app.use("/api/net-worth", netWorthRoutes);
 app.use("/api/bills", billsRoutes);
+app.use("/api/properties", propertiesRoutes);
+app.use("/api/gic", gicRoutes);
+app.use("/api/portfolio", portfolioRoutes);
+app.use("/api/insurance", insuranceRoutes);
+app.use("/api/income", incomeRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/reports", reportsRoutes);
+app.use("/api/recurring", recurringRoutes);
+app.use("/api/plaid", plaidRoutes);
 
 // Error handler
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   console.error("Error:", err);
   res.status(err.status || 500).json({ message: err.message });
 });
@@ -94,6 +117,7 @@ app.use((err: any, req: any, res: any, next: any) => {
 mongoose.connect(MONGO_URI).then(() => {
   console.log("Mongo connected");
   app.listen(PORT, () => console.log(`API on http://localhost:${PORT}`));
+  startScheduler();
 });
 
 

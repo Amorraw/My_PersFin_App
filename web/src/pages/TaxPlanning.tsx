@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
+import { useAuth } from "../AuthContext";
 import "./TaxPlanning.css";
+
+const PROVINCES = [
+  { code: "AB", name: "Alberta" },
+  { code: "BC", name: "British Columbia" },
+  { code: "MB", name: "Manitoba" },
+  { code: "NB", name: "New Brunswick" },
+  { code: "NL", name: "Newfoundland and Labrador" },
+  { code: "NS", name: "Nova Scotia" },
+  { code: "NT", name: "Northwest Territories" },
+  { code: "NU", name: "Nunavut" },
+  { code: "ON", name: "Ontario" },
+  { code: "PE", name: "Prince Edward Island" },
+  { code: "QC", name: "Quebec" },
+  { code: "SK", name: "Saskatchewan" },
+  { code: "YT", name: "Yukon" },
+];
 
 interface TaxAccount {
   _id: string;
@@ -400,6 +417,7 @@ function RRSPTaxSavingsCalculator({ accountId }: { accountId: string }) {
 function CapitalGainsTaxCalculator({ accountId }: { accountId: string }) {
   const [gain, setGain] = useState(10000);
   const [taxRate, setTaxRate] = useState(30);
+  const [priorGains, setPriorGains] = useState(0);
   const [result, setResult] = useState<any>(null);
 
   const calculate = async () => {
@@ -409,6 +427,7 @@ function CapitalGainsTaxCalculator({ accountId }: { accountId: string }) {
         body: JSON.stringify({
           unrealizedGain: gain,
           marginalTaxRate: taxRate,
+          priorGainsThisYear: priorGains,
         }),
       });
       setResult(data);
@@ -420,15 +439,30 @@ function CapitalGainsTaxCalculator({ accountId }: { accountId: string }) {
   return (
     <div className="calculator">
       <div className="input-group">
-        <label>Unrealized Gain: ${gain.toLocaleString()}</label>
+        <label>Capital Gain to Realize: ${gain.toLocaleString()}</label>
         <input
           type="range"
           min="0"
-          max="100000"
-          step="1000"
+          max="500000"
+          step="5000"
           value={gain}
           onChange={(e) => setGain(Number(e.target.value))}
         />
+      </div>
+
+      <div className="input-group">
+        <label>Capital Gains Already Realized This Year: ${priorGains.toLocaleString()}</label>
+        <input
+          type="range"
+          min="0"
+          max="500000"
+          step="5000"
+          value={priorGains}
+          onChange={(e) => setPriorGains(Number(e.target.value))}
+        />
+        <small style={{ color: "var(--text-secondary)" }}>
+          Gains below $250K/year use 50% inclusion; gains above use 66.7% (June 2024 budget)
+        </small>
       </div>
 
       <div className="input-group">
@@ -451,11 +485,35 @@ function CapitalGainsTaxCalculator({ accountId }: { accountId: string }) {
         </div>
       ) : result ? (
         <div className="calculation-result">
+          {result.highRatePortion > 0 && (
+            <p style={{ color: "var(--warning)" }}>
+              ⚠️ Gain crosses $250K annual threshold — two inclusion rates apply
+            </p>
+          )}
           <p>
-            <strong>Taxable Gain (50%):</strong> ${result.taxableGain.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            <strong>Portion at 50% inclusion:</strong>{" "}
+            ${result.lowRatePortion?.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          </p>
+          {result.highRatePortion > 0 && (
+            <p>
+              <strong>Portion at 66.7% inclusion (above $250K):</strong>{" "}
+              ${result.highRatePortion?.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </p>
+          )}
+          <p>
+            <strong>Total Taxable Gain:</strong>{" "}
+            ${result.taxableGain?.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            {" "}
+            <em>
+              (effective inclusion: {((result.effectiveInclusionRate ?? 0.5) * 100).toFixed(1)}%)
+            </em>
           </p>
           <p>
-            <strong>Tax Owed:</strong> ${result.taxOwed.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+            <strong>Estimated Tax Owed:</strong>{" "}
+            ${result.taxOwed?.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </p>
+          <p style={{ fontSize: "0.85em", color: "var(--text-secondary)" }}>
+            {result.breakdown}
           </p>
         </div>
       ) : null}
@@ -497,9 +555,14 @@ function DividendOptimizationTool({ accountId }: { accountId: string }) {
 }
 
 function MarginalTaxRateCalculator() {
+  const { user } = useAuth();
   const [income, setIncome] = useState(50000);
-  const [province, setProvince] = useState("ON");
+  const [province, setProvince] = useState(user?.province ?? "ON");
   const [result, setResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.province) setProvince(user.province);
+  }, [user?.province]);
 
   const calculate = async () => {
     try {
@@ -517,7 +580,7 @@ function MarginalTaxRateCalculator() {
         <input
           type="range"
           min="0"
-          max="200000"
+          max="300000"
           step="5000"
           value={income}
           onChange={(e) => setIncome(Number(e.target.value))}
@@ -525,14 +588,18 @@ function MarginalTaxRateCalculator() {
       </div>
 
       <div className="input-group">
-        <label>Province</label>
+        <label>Province / Territory</label>
         <select value={province} onChange={(e) => setProvince(e.target.value)}>
-          <option value="ON">Ontario</option>
-          <option value="BC">British Columbia</option>
-          <option value="AB">Alberta</option>
-          <option value="MB">Manitoba</option>
-          <option value="QC">Quebec</option>
+          {PROVINCES.map((p) => (
+            <option key={p.code} value={p.code}>{p.name}</option>
+          ))}
         </select>
+        {user?.province && province !== user.province && (
+          <small style={{ color: "var(--warning)" }}>
+            Differs from your saved province ({user.province}). Update in{" "}
+            <a href="/settings">Settings</a>.
+          </small>
+        )}
       </div>
 
       <button onClick={calculate} className="btn btn-primary">
@@ -542,12 +609,29 @@ function MarginalTaxRateCalculator() {
       {result && (
         <div className="calculation-result">
           <p>
-            <strong>Your Marginal Tax Rate:</strong> {result.marginalTaxRate}%
+            <strong>Province:</strong> {result.provinceName} ({result.province})
+          </p>
+          <p>
+            <strong>Federal Marginal Rate:</strong> {result.federalRate}%
+            <span style={{ color: "var(--text-secondary)", fontSize: "0.85em" }}>
+              {" "}({result.federalBracket})
+            </span>
+          </p>
+          <p>
+            <strong>Provincial Marginal Rate:</strong> {result.provincialRate}%
+            <span style={{ color: "var(--text-secondary)", fontSize: "0.85em" }}>
+              {" "}({result.provincialBracket})
+            </span>
+          </p>
+          <p style={{ borderTop: "1px solid var(--border)", paddingTop: "0.5rem", marginTop: "0.5rem" }}>
+            <strong>Combined Marginal Rate:</strong>{" "}
+            <span style={{ fontSize: "1.2em", color: "var(--primary)" }}>
+              {result.combinedRate.toFixed(2)}%
+            </span>
           </p>
           <p>
             <em>
-              This is your tax rate on your next dollar of income. RRSP
-              contributions save {result.marginalTaxRate}% in taxes!
+              An RRSP contribution saves you {result.combinedRate.toFixed(1)}% in taxes on every dollar contributed.
             </em>
           </p>
         </div>

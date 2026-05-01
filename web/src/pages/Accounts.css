@@ -1,61 +1,63 @@
 .accounts-container {
-  max-width: 1400px;
+  max-width: 1050px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
 }
 
 .accounts-container h1 {
   color: white;
-  margin-bottom: 30px;
-  font-size: 2.5rem;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
   font-weight: 600;
 }
 
 .accounts-layout {
   display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 30px;
-  margin-top: 20px;
+  grid-template-columns: 190px 1fr;
+  gap: 12px;
+  margin-top: 10px;
 }
 
+/* ── Sidebar ─────────────────────────────────── */
 .accounts-sidebar {
   background: white;
-  border-radius: 12px;
-  padding: 25px;
+  border-radius: 10px;
+  padding: 12px;
   height: fit-content;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   position: sticky;
-  top: 20px;
+  top: 8px;
 }
 
 .accounts-sidebar h3 {
-  margin: 0 0 20px 0;
+  margin: 0 0 8px 0;
   color: #333;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .account-type-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .account-type-btn {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #555;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .account-type-btn:hover {
@@ -67,7 +69,7 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.35);
 }
 
 .type-name {
@@ -77,9 +79,9 @@
 
 .type-count {
   background: rgba(0, 0, 0, 0.1);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.68rem;
   font-weight: 600;
 }
 
@@ -87,67 +89,71 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* ── Main panel ──────────────────────────────── */
 .accounts-main {
   background: white;
-  border-radius: 12px;
-  padding: 35px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .account-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 40px;
-  padding-bottom: 30px;
-  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid #f0f0f0;
 }
 
 .account-header h2 {
-  margin: 0 0 8px 0;
+  margin: 0 0 3px 0;
   color: #333;
-  font-size: 2rem;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .description {
   margin: 0;
   color: #666;
-  font-size: 0.95rem;
-  max-width: 600px;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  max-width: 520px;
+  line-height: 1.4;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 0.32rem 0.72rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.35);
+  white-space: nowrap;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.5);
 }
 
+/* ── Create form ─────────────────────────────── */
 .create-form {
   background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
-  padding: 30px;
-  border-radius: 12px;
-  margin-bottom: 40px;
-  border-left: 4px solid #667eea;
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  border-left: 3px solid #667eea;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .form-group {
@@ -156,19 +162,19 @@
 }
 
 .form-group label {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #333;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.72rem;
 }
 
 .form-group input,
 .form-group select {
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: border-color 0.15s ease;
 }
 
 .form-group input:focus,
@@ -178,39 +184,41 @@
   background-color: white;
 }
 
+/* ── Account list ────────────────────────────── */
 .accounts-list {
-  margin-bottom: 40px;
+  margin-bottom: 14px;
 }
 
 .accounts-list h3 {
   color: #333;
-  font-size: 1.3rem;
-  margin: 0 0 20px 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0 0 6px 0;
 }
 
 .empty-state {
   color: #999;
-  font-size: 1rem;
+  font-size: 0.75rem;
   text-align: center;
-  padding: 40px 20px;
+  padding: 20px;
   background: #f9f9f9;
   border-radius: 8px;
-  border: 2px dashed #e0e0e0;
+  border: 1px dashed #ddd;
 }
 
 .account-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
 }
 
 .account-card {
   background: linear-gradient(135deg, #ffffff 0%, #f9f9ff 100%);
-  border: 2px solid #e8e8f8;
-  border-radius: 12px;
-  padding: 25px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1.5px solid #e8e8f8;
+  border-radius: 10px;
+  padding: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
 }
@@ -221,27 +229,27 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
 }
 
 .account-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.14);
   border-color: #667eea;
 }
 
 .account-card h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 6px 0;
   color: #333;
-  font-size: 1.2rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
 .account-card .balance {
-  margin: 12px 0;
+  margin: 3px 0;
   color: #667eea;
-  font-size: 1.5rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
@@ -249,47 +257,48 @@
   display: inline-block;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.68rem;
   font-weight: 600;
-  margin: 12px 0 0 0;
+  margin: 5px 0 0 0;
 }
 
+/* ── Stats row ───────────────────────────────── */
 .account-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-top: 40px;
-  padding-top: 40px;
-  border-top: 2px solid #f0f0f0;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .stat-box {
   background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
-  padding: 25px;
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
   text-align: center;
 }
 
 .stat-box h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 5px 0;
   color: #666;
-  font-size: 0.95rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .stat-value {
   margin: 0;
   color: #667eea;
-  font-size: 2rem;
+  font-size: 0.92rem;
   font-weight: 700;
 }
 
-/* Responsive Design */
+/* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
   .accounts-layout {
     grid-template-columns: 1fr;
@@ -302,7 +311,7 @@
 
   .account-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
   }
 
   .btn-primary {
@@ -314,10 +323,10 @@
   }
 
   .accounts-container h1 {
-    font-size: 1.8rem;
+    font-size: 1.1rem;
   }
 
   .account-header h2 {
-    font-size: 1.5rem;
+    font-size: 0.95rem;
   }
 }

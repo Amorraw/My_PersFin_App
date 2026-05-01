@@ -105,7 +105,7 @@ export default function Transactions() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       await api("/transactions", {
@@ -457,11 +457,12 @@ export default function Transactions() {
     const selectedValues = columnFilters[key];
 
     return (
-      <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", minWidth: "200px" }}>
-        <span style={{ fontWeight: 600 }}>{label}</span>
+      <label style={{ display: "flex", flexDirection: "column", gap: "0.2rem", flex: 1, minWidth: 0 }}>
+        <span style={{ fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--text-light)" }}>{label}</span>
         <details>
-          <summary style={{ cursor: "pointer", userSelect: "none" }}>
-            {selectedValues.size > 0 ? `${selectedValues.size} selected` : "All values"}
+          <summary style={{ cursor: "pointer", userSelect: "none", fontSize: "0.78rem", padding: "0.25rem 0.4rem", border: "1px solid var(--border)", borderRadius: "0.35rem", background: "var(--bg-card)", listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>{selectedValues.size > 0 ? `${selectedValues.size} selected` : "All"}</span>
+            <span style={{ fontSize: "0.6rem", opacity: 0.6 }}>▼</span>
           </summary>
           <div
             style={{
@@ -768,7 +769,7 @@ export default function Transactions() {
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+        <div style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
           {renderFilterDropdown("Date", "date")}
           {renderFilterDropdown("Description", "description")}
           {renderFilterDropdown("Category", "category")}

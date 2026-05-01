@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (fields: { firstName?: string; lastName?: string; province?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,12 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    await api("/auth/register", {
+    const data = await api("/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, firstName, lastName })
     });
-    // Auto-login after registration
-    await login(email, password);
+    // Session is already established by the server via req.login()
+    setUser(data.user);
   };
 
   const logout = async () => {
@@ -58,8 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateProfile = async (fields: { firstName?: string; lastName?: string; province?: string }) => {
+    const data = await api("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(fields),
+    });
+    setUser(data.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

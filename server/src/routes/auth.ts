@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import passport from "passport";
 import { User } from "../models/User";
 import crypto from "crypto";
+import { sendPasswordResetEmail } from "../utils/email";
 
 const router = Router();
 
@@ -29,7 +30,15 @@ router.post("/register", async (req, res, next) => {
         return next(err);
       }
       console.log("Registration successful for user:", user.id);
-      res.json({ user: { id: user.id, email: user.email } });
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          province: user.province || "ON",
+        }
+      });
     });
   } catch (err) {
     console.error("Registration error:", err);
@@ -66,14 +75,52 @@ router.post("/logout", (req, res, next) => {
 });
 
 router.get("/me", (req, res) => {
-  console.log("GET /me - req.user:", req.user);
-  if (!req.user) {
-    console.log("No user, returning 401");
-    return res.status(401).json({ user: null });
-  }
+  if (!req.user) return res.status(401).json({ user: null });
   const user = req.user as any;
-  console.log("User found:", user);
-  res.json({ user: { id: user.id || user._id, email: user.email } });
+  res.json({
+    user: {
+      id: user.id || user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      province: user.province || "ON",
+    },
+  });
+});
+
+router.put("/profile", async (req, res, next) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+    const userId = (req.user as any)._id;
+    const { firstName, lastName, province } = req.body;
+
+    const VALID_PROVINCES = ["AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT"];
+    if (province && !VALID_PROVINCES.includes(province)) {
+      return res.status(400).json({ message: "Invalid province code" });
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { ...(firstName !== undefined && { firstName }),
+        ...(lastName  !== undefined && { lastName  }),
+        ...(province  !== undefined && { province  }) },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        province: updated.province || "ON",
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post("/forgot-password", async (req, res, next) => {
@@ -95,10 +142,8 @@ router.post("/forgot-password", async (req, res, next) => {
     user.resetTokenExpires = resetTokenExpires;
     await user.save();
 
-    // TODO: In production, send email with reset link
-    // For development, log the token
-    console.log(`Password reset token for ${email}: ${resetToken}`);
-    console.log(`Reset link: http://localhost:5173/reset-password?token=${resetToken}`);
+    const appUrl = process.env.APP_URL || "http://localhost:5176";
+    await sendPasswordResetEmail(email, resetToken, appUrl);
 
     res.json({ message: "If an account exists, a reset link will be sent" });
   } catch (err) {

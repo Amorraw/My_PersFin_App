@@ -1,70 +1,69 @@
 .debt-optimization-container {
-  max-width: 1200px;
+  max-width: 1050px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
 }
 
 .debt-header {
   text-align: center;
   color: white;
-  margin-bottom: 40px;
+  margin-bottom: 16px;
 }
 
 .debt-header h1 {
-  font-size: 2.5rem;
+  font-size: 0.92rem;
   margin: 0;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .debt-header p {
-  font-size: 1.1rem;
-  margin: 10px 0 0 0;
+  font-size: 0.72rem;
+  margin: 4px 0 0 0;
   opacity: 0.9;
 }
 
 .debt-section {
   background: white;
   border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 20px;
+  padding: 10px;
+  margin-bottom: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .debt-section h2 {
   color: #333;
-  font-size: 1.8rem;
+  font-size: 0.82rem;
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   border-bottom: 2px solid #667eea;
-  padding-bottom: 10px;
+  padding-bottom: 5px;
 }
 
 .debt-section h3 {
   color: #555;
-  font-size: 1.2rem;
-  margin-top: 20px;
-  margin-bottom: 15px;
+  font-size: 0.75rem;
+  margin-top: 8px;
+  margin-bottom: 5px;
 }
 
 .no-debts {
   text-align: center;
   color: #999;
-  padding: 40px 20px;
-  font-size: 1.1rem;
+  padding: 16px 10px;
+  font-size: 0.78rem;
 }
 
 .debt-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
 }
 
 .debt-card {
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -93,26 +92,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .debt-info strong {
   color: #333;
-  font-size: 1.1rem;
+  font-size: 0.78rem;
 }
 
 .debt-type {
   background: #667eea;
   color: white;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 12px;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
 }
 
 .debt-details {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
 }
 
 .balance {
@@ -127,15 +126,15 @@
 
 .strategy-selector {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .strategy-option {
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px;
+  padding: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -158,20 +157,22 @@
 .strategy-option small {
   color: #666;
   display: block;
-  margin-top: 8px;
+  margin-top: 4px;
+  font-size: 0.68rem;
 }
 
 .hybrid-weighting {
   background: #f5f5f5;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .hybrid-weighting label {
   display: block;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+  font-size: 0.72rem;
 }
 
 .hybrid-weighting input[type="range"] {
@@ -187,26 +188,27 @@
 
 .budget-input {
   background: #f9f9f9;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
 }
 
 .budget-input label {
   display: block;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   color: #333;
+  font-size: 0.72rem;
 }
 
 .input-group {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .input-group span {
-  font-size: 1.2rem;
+  font-size: 0.82rem;
   font-weight: bold;
   color: #667eea;
 }
@@ -214,10 +216,10 @@
 .input-group input[type="number"],
 .input-group input[type="text"],
 .input-group select {
-  padding: 10px 12px;
+  padding: 5px 8px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 0.8rem;
   flex: 1;
 }
 
@@ -244,10 +246,10 @@
 
 .btn-primary,
 .btn-secondary {
-  padding: 12px 30px;
+  padding: 0.32rem 0.72rem;
   border: none;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 0.78rem;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -288,14 +290,14 @@
 
 .plan-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .plan-stat {
   background: white;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
   border-left: 4px solid #667eea;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -304,35 +306,36 @@
 .plan-stat .label {
   display: block;
   color: #999;
-  font-size: 0.9rem;
-  margin-bottom: 8px;
+  font-size: 0.7rem;
+  margin-bottom: 4px;
 }
 
 .plan-stat .value {
   display: block;
   color: #333;
-  font-size: 1.5rem;
+  font-size: 0.92rem;
   font-weight: bold;
 }
 
 .comparisons {
-  margin-top: 30px;
+  margin-top: 8px;
 }
 
 .comparisons h3 {
   margin-top: 0;
   color: #333;
+  font-size: 0.75rem;
 }
 
 .comparison-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
 }
 
 .comparison-card {
   background: white;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
   border: 2px solid #e0e0e0;
   transition: all 0.3s ease;
@@ -346,50 +349,53 @@
 .comparison-card h4 {
   color: #667eea;
   margin-top: 0;
-  font-size: 1.1rem;
+  font-size: 0.75rem;
 }
 
 .comparison-card .stat {
-  margin: 10px 0;
+  margin: 4px 0;
   color: #555;
+  font-size: 0.72rem;
 }
 
 .comparison-card .stat strong {
   color: #333;
-  font-size: 1.1rem;
+  font-size: 0.78rem;
 }
 
 .savings {
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #e0e0e0;
   color: #2e7d32;
-  font-size: 0.95rem;
+  font-size: 0.72rem;
 }
 
 .tool-subsection {
   background: #f9f9f9;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .tool-subsection h3 {
   margin-top: 0;
   color: #333;
+  font-size: 0.75rem;
 }
 
 .tool-subsection p {
   color: #666;
-  margin-bottom: 15px;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
-  gap: 15px;
+  gap: 8px;
   align-items: flex-end;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 .form-row > div {
@@ -399,41 +405,44 @@
 
 .form-row label {
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #333;
+  font-size: 0.72rem;
 }
 
 .form-row select {
-  padding: 8px 12px;
+  padding: 5px 8px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
 .tool-result {
   background: white;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
   border-left: 4px solid #667eea;
-  margin-top: 15px;
+  margin-top: 6px;
 }
 
 .tool-result .recommendation {
   color: #555;
-  line-height: 1.6;
-  margin-bottom: 15px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
 }
 
 .result-details {
   background: #f0f0f0;
-  padding: 15px;
+  padding: 8px;
   border-radius: 6px;
 }
 
 .result-details p {
-  margin: 8px 0;
+  margin: 4px 0;
   color: #555;
+  font-size: 0.72rem;
 }
 
 .result-details strong {

@@ -9,7 +9,7 @@ export default function ForgotPassword() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -20,7 +20,7 @@ export default function ForgotPassword() {
         method: "POST",
         body: JSON.stringify({ email })
       });
-      setSuccess("If an account exists, a reset link will be sent. Check your email (or console logs in development).");
+      setSuccess("If an account exists with that email, a password reset link has been sent. Check your inbox.");
       setEmail("");
       // Redirect back to login after 3 seconds
       setTimeout(() => navigate("/login"), 3000);

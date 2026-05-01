@@ -1,0 +1,398 @@
+.annual-review-container {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 10px;
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+.annual-review-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.annual-review-header h1 {
+  font-size: 0.92rem;
+  margin: 0 0 4px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.annual-review-header p {
+  font-size: 0.72rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* ── Controls ────────────────────────────────– */
+.controls-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.controls-bar input {
+  padding: 0.32rem 0.72rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.controls-bar button {
+  padding: 0.32rem 0.72rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  color: #9b59b6;
+  border: 1px solid white;
+}
+
+.controls-bar button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Category Tabs ──────────────────────────── */
+.category-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.category-tab {
+  padding: 0.32rem 0.72rem;
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.category-tab.active {
+  background: #9b59b6;
+  color: white;
+  border-color: #9b59b6;
+}
+
+.category-tab:hover:not(.active) {
+  border-color: #9b59b6;
+  color: #9b59b6;
+}
+
+/* ── Checklist ──────────────────────────────── */
+.checklist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checklist-item {
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #9b59b6;
+  transition: all 0.2s;
+}
+
+.checklist-item.completed {
+  background: #f5f5f5;
+  opacity: 0.75;
+}
+
+.checklist-item.completed .task-title {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.checklist-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #9b59b6;
+}
+
+.task-info {
+  flex: 1;
+}
+
+.task-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.task-detail {
+  font-size: 0.72rem;
+  color: #666;
+  margin: 3px 0 0 0;
+  line-height: 1.4;
+}
+
+.priority-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-left: 6px;
+}
+
+.priority-badge.high {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.priority-badge.medium {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.priority-badge.low {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* ── Progress Bar ────────────────────────────– */
+.progress-section {
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-section h3 {
+  margin: 0 0 6px 0;
+  font-size: 0.75rem;
+  color: #1a1a1a;
+}
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stat-item {
+  background: #f9f9f9;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.stat-item .label {
+  font-size: 0.68rem;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.stat-item .value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.progress-bar-container {
+  background: #e0e0e0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9b59b6 0%, #8e44ad 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  transition: width 0.3s ease;
+}
+
+/* ── Category Summary ────────────────────────– */
+.category-summary {
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #9b59b6;
+}
+
+.category-summary h3 {
+  margin: 0 0 6px 0;
+  font-size: 0.75rem;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.category-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.category-stat .count {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #9b59b6;
+}
+
+.category-stat .label {
+  font-size: 0.68rem;
+  color: #666;
+}
+
+.mini-progress-bar {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  width: 100px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.mini-progress-bar-fill {
+  height: 100%;
+  background: #9b59b6;
+  transition: width 0.3s ease;
+}
+
+/* ── Empty State ────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.empty-state p {
+  margin: 6px 0;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.empty-state h3 {
+  margin: 0 0 6px 0;
+  font-size: 0.82rem;
+  color: #1a1a1a;
+}
+
+/* ── Buttons ────────────────────────────────– */
+.btn {
+  padding: 0.32rem 0.72rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #9b59b6;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #8e44ad;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #e8e8e8;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ─────────────────────────────– */
+@media (max-width: 768px) {
+  .annual-review-container {
+    padding: 10px;
+  }
+
+  .controls-bar {
+    flex-direction: column;
+  }
+
+  .controls-bar input {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .category-tabs {
+    gap: 4px;
+  }
+
+  .category-tab {
+    font-size: 0.7rem;
+    padding: 0.28rem 0.6rem;
+  }
+
+  .progress-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .category-stats {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mini-progress-bar {
+    width: 100%;
+  }
+
+  .checklist-header {
+    flex-direction: column;
+  }
+
+  .priority-badge {
+    margin-left: 0;
+    margin-top: 4px;
+  }
+}

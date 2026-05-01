@@ -107,10 +107,20 @@ export const OAS_RATES_2024 = {
   description: "Old Age Security"
 };
 
+// June 2024 budget: tiered inclusion rates
 export const CAPITAL_GAINS_INCLUSION = {
-  federalRate: 0.5, // 50% inclusion rate as of 2024
-  capitalGainsTax: function(gain: number, marginalTaxRate: number) {
-    return gain * this.federalRate * marginalTaxRate;
+  LOW_RATE: 0.5,          // 50% on first $250K of annual gains
+  HIGH_RATE: 2 / 3,       // 66.67% on gains above $250K per year
+  ANNUAL_THRESHOLD: 250000,
+  capitalGainsTax: function(
+    gain: number,
+    marginalTaxRate: number,
+    priorGainsThisYear: number = 0
+  ): number {
+    const roomAtLowRate = Math.max(0, this.ANNUAL_THRESHOLD - priorGainsThisYear);
+    const lowPortion = Math.min(gain, roomAtLowRate);
+    const highPortion = Math.max(0, gain - lowPortion);
+    return (lowPortion * this.LOW_RATE + highPortion * this.HIGH_RATE) * marginalTaxRate;
   }
 };
 
@@ -188,26 +198,16 @@ export function calculateRRSPContributionRoom(
 
 export function calculateTFSAContributionRoom(
   yearOfBirth: number,
-  previousBalance: number,
-  previousWithdrawals: number
+  totalContributionsEver: number,
+  totalWithdrawalsPriorYears: number = 0
 ): number {
-  const currentYear = new Date().getFullYear();
-  let totalRoom = 0;
-
-  // TFSA started in 2009
-  if (yearOfBirth + 18 <= 2009) {
-    // 2009-2012: $5,000
-    totalRoom += 4 * 5000;
-    // 2013-2014: $5,500
-    totalRoom += 2 * 5500;
-    // 2015-2019: $5,500
-    totalRoom += 5 * 5500;
-    // 2020-2024: $7,000
-    totalRoom += (currentYear - 2019) * 7000;
-  }
-
-  const usedRoom = previousBalance - previousWithdrawals;
-  return Math.max(0, totalRoom - usedRoom);
+  // Delegate to taxPlanner which has the authoritative annual limits table
+  const { remainingRoom } = require("./taxPlanner").calculateTFSARoomFromBirthYear(
+    yearOfBirth,
+    totalContributionsEver,
+    totalWithdrawalsPriorYears
+  );
+  return remainingRoom;
 }
 
 export function calculateCESG(
@@ -290,11 +290,17 @@ export function calculateCapitalGain(
   purchasePrice: number,
   sellingPrice: number,
   quantity: number,
-  inclusionRate: number = CAPITAL_GAINS_INCLUSION.federalRate
-): { capitalGain: number; taxableGain: number } {
+  priorGainsThisYear: number = 0
+): { capitalGain: number; taxableGain: number; inclusionRate: number } {
   const capitalGain = (sellingPrice - purchasePrice) * quantity;
-  const taxableGain = capitalGain * inclusionRate;
-  return { capitalGain, taxableGain };
+  const roomAtLowRate = Math.max(0, CAPITAL_GAINS_INCLUSION.ANNUAL_THRESHOLD - priorGainsThisYear);
+  const lowPortion = Math.min(capitalGain, roomAtLowRate);
+  const highPortion = Math.max(0, capitalGain - lowPortion);
+  const taxableGain =
+    lowPortion * CAPITAL_GAINS_INCLUSION.LOW_RATE +
+    highPortion * CAPITAL_GAINS_INCLUSION.HIGH_RATE;
+  const inclusionRate = capitalGain > 0 ? taxableGain / capitalGain : CAPITAL_GAINS_INCLUSION.LOW_RATE;
+  return { capitalGain, taxableGain, inclusionRate };
 }
 
 export function getAccountTypeDescription(accountType: string): string {
