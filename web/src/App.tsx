@@ -38,6 +38,7 @@ import RecurringTransactions from "./pages/RecurringTransactions";
 import AnnualReview from "./pages/AnnualReview";
 import BankConnections from "./pages/BankConnections";
 import MLInsights from "./pages/MLInsights";
+import DemoProfiles from "./pages/DemoProfiles";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -130,8 +131,9 @@ const NAV_GROUPS = [
   {
     label: "Settings",
     items: [
-      { to: "/notifications", label: "Notifications" },
-      { to: "/settings",      label: "Settings"      },
+      { to: "/notifications",  label: "Notifications"   },
+      { to: "/settings",       label: "Settings"        },
+      { to: "/demo-profiles",  label: "Demo Profiles"   },
     ],
   },
 ];
@@ -196,6 +198,7 @@ function Layout() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/demo-profiles" element={<DemoProfiles />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -283,6 +286,7 @@ function Layout() {
                 <Route path="/annual-review" element={<AnnualReview />} />
                 <Route path="/bank-connections" element={<BankConnections />} />
                 <Route path="/ml-insights" element={<MLInsights />} />
+                <Route path="/demo-profiles" element={<DemoProfiles />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

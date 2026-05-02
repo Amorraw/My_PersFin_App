@@ -34,6 +34,11 @@ const transactionSchema = new Schema<ITransaction>({
   createdAt:           { type: Date, default: Date.now }
 });
 
-transactionSchema.index({ userId: 1, plaidTransactionId: 1 }, { unique: true, sparse: true });
+// Only enforce uniqueness when plaidTransactionId is an actual string (not null/missing).
+// The old { sparse: true } compound index is ineffective here because userId is always present.
+transactionSchema.index(
+  { userId: 1, plaidTransactionId: 1 },
+  { unique: true, partialFilterExpression: { plaidTransactionId: { $type: "string" } } }
+);
 
 export const Transaction = mongoose.model<ITransaction>("Transaction", transactionSchema);
