@@ -119,9 +119,9 @@ export default function WaterfallChart({
           <LabelList
             dataKey="bar"
             position="top"
-            formatter={(v: number, _: any, index: number) =>
-              formatY(rows[index]?.rawValue ?? v)
-            }
+            formatter={((v: any, _: any, index: number) =>
+              formatY(rows[index]?.rawValue ?? Number(v))
+            ) as any}
             style={{ fontSize: 9, fill: "#6B7280" }}
           />
         </Bar>

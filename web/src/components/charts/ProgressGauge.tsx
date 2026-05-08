@@ -76,7 +76,6 @@ export default function ProgressGauge({
               dataKey="value"
               cornerRadius={6}
               background={{ fill: "#E5E7EB" }}
-              data={chartData}
             />
             <Tooltip
               content={({ active, payload }) =>

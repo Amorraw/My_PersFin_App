@@ -12,7 +12,7 @@ export interface TrendSeries {
 }
 
 interface Props {
-  data:         Record<string, string | number>[];
+  data:         Record<string, unknown>[];
   series:       TrendSeries[];
   height?:      number;
   formatX?:     (v: string) => string;
@@ -71,8 +71,8 @@ export default function TrendAreaChart({
 
         <Tooltip
           {...TOOLTIP_STYLE}
-          formatter={formatTip ?? ((v, name) => [formatY(Number(v)), name])}
-          labelFormatter={formatX}
+          formatter={(formatTip ?? ((v: any, name: any) => [formatY(Number(v ?? 0)), name ?? ""])) as any}
+          labelFormatter={formatX as any}
         />
 
         {showLegend && (

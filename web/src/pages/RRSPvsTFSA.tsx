@@ -271,7 +271,7 @@ export default function RRSPvsTFSA() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="year" tickFormatter={(v) => `Yr ${v}`} />
                   <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Tooltip formatter={((v: number | undefined) => fmt(v ?? 0)) as any} />
                   <Legend />
                   <Bar dataKey="rrspValue" name="RRSP (after-tax + refund)" fill="#3b82f6" />
                   <Bar dataKey="tfsaValue" name="TFSA" fill="#22c55e" />

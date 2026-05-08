@@ -77,10 +77,10 @@ export default function DonutChart({
 
           <Tooltip
             {...TOOLTIP_STYLE}
-            formatter={(v: number, name: string) => [
-              `${formatValue(v)}  (${fmtPct((v / total) * 100)})`,
-              name,
-            ]}
+            formatter={((v: number | undefined, name: string | undefined) => [
+              v != null ? `${formatValue(v)}  (${fmtPct((v / total) * 100)})` : "—",
+              name ?? "",
+            ]) as any}
           />
 
           {showLegend && (

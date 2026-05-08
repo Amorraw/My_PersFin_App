@@ -100,7 +100,7 @@ export default function ComparisonBarChart({
 
         <Tooltip
           {...TOOLTIP_STYLE}
-          formatter={(v: number, name: string) => [formatY(v), name]}
+          formatter={((v: number | undefined, name: string | undefined) => [formatY(v ?? 0), name ?? ""]) as any}
         />
 
         {showLegend && bars.length > 1 && (
@@ -129,7 +129,7 @@ export default function ComparisonBarChart({
               <LabelList
                 dataKey={b.key}
                 position={isVertical ? "right" : "top"}
-                formatter={formatY}
+                formatter={((v: any) => formatY(Number(v))) as any}
                 style={{ fontSize: 9, fill: "#6B7280" }}
               />
             )}

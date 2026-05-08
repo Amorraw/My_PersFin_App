@@ -9,6 +9,7 @@ interface RetirementData {
   annualRetirementIncome: number;
   CPPMonthly: number;
   OASMonthly: number;
+  EmployerPensionMonthly: number;
   PortfolioWithdrawalMonthly: number;
   yearsOfRetirement: number;
   successProbability: number;

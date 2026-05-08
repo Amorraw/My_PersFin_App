@@ -194,10 +194,10 @@ export default function MLInsights() {
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `$${v}`} tick={{ fontSize: 11 }} />
                     <Tooltip
-                      formatter={(v: unknown, name: string) => [
-                        v !== null ? CAD(Number(v)) : "—",
-                        name === "actual" ? "Actual" : "Forecast",
-                      ]}
+                      formatter={((v: unknown, name: string | undefined) => [
+                        v != null ? CAD(Number(v)) : "—",
+                        (name ?? "") === "actual" ? "Actual" : "Forecast",
+                      ]) as any}
                     />
                     <Legend />
                     <Line type="monotone" dataKey="actual" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3 }} name="Actual" connectNulls={false} />
