@@ -109,7 +109,7 @@ interface DemoProfile {
 
 // ── 10 Profiles ───────────────────────────────────────────────────────────────
 
-const PROFILES: DemoProfile[] = [
+export const PROFILES: DemoProfile[] = [
 
   // ── 1. The Overwhelmed Graduate ─────────────────────────────────────────────
   {
@@ -909,4 +909,7 @@ async function main(): Promise<void> {
   console.log(`Emails: user_test1@demo.com ... user_test10@demo.com`);
 }
 
-main().catch(console.error).finally(() => mongoose.disconnect());
+// Only run when executed directly (not when imported as a module)
+if (require.main === module) {
+  main().catch(console.error).finally(() => mongoose.disconnect());
+}

@@ -22,7 +22,7 @@ router.post("/seed-demo", async (req: Request, res: Response) => {
 
   try {
     // Dynamic import so this heavy module isn't loaded at startup
-    const { seedProfile, PROFILES } = await import("../scripts/seedDemoUsers") as any;
+    const { seedProfile, PROFILES } = await import("../scripts/seedDemoUsers");
 
     // Re-create the partial-filter index (idempotent)
     try {
