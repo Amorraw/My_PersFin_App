@@ -16,3 +16,18 @@ Error: Error: Failed to deserialize user out of session
     at deserialized (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:364:7)
     at C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\dist\passport.js:30:9
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Error: Error: Failed to deserialize user out of session
+    at pass (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:359:19)
+    at deserialized (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:364:7)
+    at C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\dist\passport.js:30:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Error: Error: Failed to deserialize user out of session
+    at pass (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:359:19)
+    at deserialized (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:364:7)
+    at C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\dist\passport.js:30:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Error: Error: Failed to deserialize user out of session
+    at pass (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:359:19)
+    at deserialized (C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\node_modules\passport\lib\authenticator.js:364:7)
+    at C:\MyDocumentsCDrive\Schools\UBC_Ext_Lrn\Course Path\Capstone\Capstone Idea 2\My_PersFin_App\server\dist\passport.js:30:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)

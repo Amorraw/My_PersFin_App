@@ -49,3 +49,6 @@ API on http://localhost:3000
 [2026-05-18T02:17:20.478Z] GET /api/notifications
 [2026-05-18T02:22:20.467Z] GET /api/notifications
 [2026-05-18T02:27:20.459Z] GET /api/notifications
+[2026-05-18T02:32:20.473Z] GET /api/notifications
+[2026-05-18T02:37:23.470Z] GET /api/notifications
+[2026-05-18T02:42:23.477Z] GET /api/notifications
