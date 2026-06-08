@@ -107,8 +107,9 @@ export default function DemoProfiles() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState<number | null>(null); // profileIndex being activated
+  const [loading, setLoading] = useState<number | null>(null);
   const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [historyYears, setHistoryYears] = useState(5);
 
   const copyCredentials = () => {
     navigator.clipboard.writeText(`Email: ${DEMO_EMAIL}\nPassword: ${PASSWORD}`);
@@ -118,7 +119,7 @@ export default function DemoProfiles() {
 
   const handleActivate = async (profileIndex: number) => {
     const p = PROFILES[profileIndex - 1];
-    if (!confirm(`Load the "${p.title}" profile into your account? Your current data will be replaced.`)) return;
+    if (!confirm(`Load "${p.title}" with ${historyYears} years of seasonal history? Your current data will be replaced.`)) return;
     setLoading(profileIndex);
     setStatusMsg(null);
     try {
@@ -126,7 +127,7 @@ export default function DemoProfiles() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileIndex }),
+        body: JSON.stringify({ profileIndex, years: historyYears }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -150,8 +151,8 @@ export default function DemoProfiles() {
           Demo Financial Profiles
         </h1>
         <p style={{ color: "var(--text-light, #6b7280)", fontSize: "0.9rem", maxWidth: 620, margin: "0 auto" }}>
-          10 pre-seeded Canadian households — from a debt-laden graduate to a high-net-worth executive —
-          each with 2 years of realistic transaction history. Log in to explore any profile.
+          10 pre-seeded Canadian households — from a debt-laden graduate to a high-net-worth executive.
+          Choose how many years of realistic, seasonally-varying history to generate, then load any profile.
         </p>
         {/* Single credential box */}
         <div style={{
@@ -179,10 +180,41 @@ export default function DemoProfiles() {
             {copied ? "✓ Copied!" : "📋 Copy"}
           </button>
         </div>
+        {/* History length selector */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 10, marginTop: 20,
+          background: "var(--bg-card, #fff)", border: "1px solid var(--border, #e5e7eb)",
+          borderRadius: 10, padding: "10px 20px", flexWrap: "wrap", justifyContent: "center",
+        }}>
+          <span style={{ fontSize: "0.8rem", color: "var(--text-light, #6b7280)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            History Length
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[3, 4, 5, 6, 7].map(y => (
+              <button
+                key={y}
+                onClick={() => setHistoryYears(y)}
+                style={{
+                  padding: "5px 14px", borderRadius: 6, fontSize: "0.8rem", fontWeight: 600,
+                  border: `1px solid ${historyYears === y ? "#4f46e5" : "var(--border, #e5e7eb)"}`,
+                  background: historyYears === y ? "#4f46e5" : "transparent",
+                  color: historyYears === y ? "#fff" : "var(--text, #111)",
+                  cursor: "pointer",
+                }}
+              >
+                {y} yr{y > 1 ? "s" : ""}
+              </button>
+            ))}
+          </div>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-light, #6b7280)" }}>
+            → {historyYears * 12} months of seasonal data for ML Insights
+          </span>
+        </div>
+
         {user && (
-          <p style={{ color: "var(--text-light, #6b7280)", fontSize: "0.8rem", marginTop: 10, marginBottom: 0 }}>
-            Click <strong>Load this Profile</strong> on any card below to populate your account with that profile's data.
-            Use the red <strong>DEMO ONLY</strong> bar in the header to Regenerate, Reset, or Clear.
+          <p style={{ color: "var(--text-light, #6b7280)", fontSize: "0.8rem", marginTop: 12, marginBottom: 0 }}>
+            Click <strong>Load this Profile</strong> on any card below. The selected years applies to all profiles.
+            Use the <strong>DEMO MODE</strong> bar in the header to Regenerate or Reset.
           </p>
         )}
       </div>
@@ -286,7 +318,7 @@ export default function DemoProfiles() {
       <div style={{ marginTop: 32, padding: "14px 18px", background: "var(--bg, #f9fafb)", borderRadius: 10, fontSize: "0.78rem", color: "var(--text-light, #6b7280)" }}>
         <strong>How to load demo data:</strong> Run <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 3 }}>npm run seed:demo</code> in the <code>server/</code> directory once.
         To remove all demo data: <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 3 }}>npm run clear:demo</code>.
-        Demo accounts use realistic 2-year Canadian transaction histories across all account types.
+        Demo accounts use realistic Canadian transaction histories with seasonal patterns. Choose 3–7 years above before loading any profile. Regenerate preserves the same year-length choice.
       </div>
     </div>
   );

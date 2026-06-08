@@ -164,10 +164,10 @@ export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
 
       </div>
 
-      {/* Demo profile bar — full-width red strip at the bottom of the header */}
+      {/* Demo profile bar — full-width dark navy strip at the bottom of the header */}
       {hasDemoProfile && (
         <div style={{
-          background: "#dc2626",
+          background: "#0f172a",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -179,7 +179,7 @@ export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
         }}>
           <span style={{
             background: "#fff",
-            color: "#dc2626",
+            color: "#0f172a",
             borderRadius: 4,
             padding: "1px 7px",
             fontSize: "11px",

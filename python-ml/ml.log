@@ -1,0 +1,45 @@
+INFO:     Will watch for changes in these directories: ['C:\\MyDocumentsCDrive\\Schools\\UBC_Ext_Lrn\\Projects\\Capstone\\My_PersFin_App\\python-ml']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [32376] using StatReload
+INFO:     Started server process [1240]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:53682 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49672 - "POST /forecast HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+ INFO:     127.0.0.1:62233 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50518 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53557 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63552 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55623 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57605 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60807 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54758 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57422 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50279 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50281 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56899 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50797 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61636 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61188 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61950 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57349 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57357 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54909 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54911 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     Started server process [31348]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:53886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53893 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54338 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61422 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50243 - "POST /forecast HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+ INFO:     Started server process [23008]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:55062 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55064 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52125 - "POST /anomalies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56643 - "POST /suggest-budgets HTTP/1.1" 200 OK

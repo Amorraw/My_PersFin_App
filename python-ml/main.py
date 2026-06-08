@@ -46,27 +46,143 @@ class BudgetSuggestReq(BaseModel):
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
-def _ets_forecast(series: pd.Series, n: int) -> pd.Series:
-    """Holt exponential smoothing with moving-average fallback.
+def _ets_forecast(series: pd.Series, n: int) -> tuple:
+    """Returns (median_series, p25_series, p75_series) for n forecast months.
 
-    statsmodels returns a RangeIndex on the forecast when it cannot infer the
-    series frequency (common with pandas 2.2+ DatetimeIndex without explicit freq).
-    We always build the future DatetimeIndex ourselves so the caller can safely
-    call .strftime() on every index value.
+    Central forecast uses _seasonal_hugging_forecast (recency-weighted same-month
+    averages + trend) — this guarantees a wavy, season-following line.
+    Prediction bands (P25/P75) come from the spread of actual historical values
+    for each calendar month, so the band width reflects real historical variability:
+    wide band = that month is unpredictable, narrow band = that month is consistent.
+
+    Upgrade path: if Holt-Winters finds a strong seasonal component (≥ 8 % of mean)
+    we use it for the median instead, keeping the data-driven bands.
     """
     last_date = pd.Timestamp(series.index[-1])
     future_idx = pd.date_range(last_date + pd.DateOffset(months=1), periods=n, freq="MS")
-    try:
-        from statsmodels.tsa.holtwinters import ExponentialSmoothing
-        trend = "add" if len(series) >= 4 else None
-        damped = trend is not None and len(series) >= 6
-        model = ExponentialSmoothing(series, trend=trend, damped_trend=damped).fit(optimized=True)
-        fc = model.forecast(n)
-        # fc may have a RangeIndex — replace it with the correct future dates
-        return pd.Series(fc.values, index=future_idx)
-    except Exception:
-        avg = float(series.mean())
-        return pd.Series([avg] * n, index=future_idx)
+
+    # Always compute the hugging forecast — used for bands and as HW fallback
+    mid_hug, low_hug, high_hug = _seasonal_hugging_forecast(series, future_idx)
+
+    if len(series) >= 24:
+        try:
+            from statsmodels.tsa.holtwinters import ExponentialSmoothing
+            fit = ExponentialSmoothing(
+                series, trend="add", damped_trend=True,
+                seasonal="add", seasonal_periods=12,
+            ).fit(optimized=True)
+            hw_seasonal_range = (
+                float(fit.season.max() - fit.season.min())
+                if hasattr(fit, "season") else 0.0
+            )
+            series_mean = float(series.mean())
+            if series_mean > 0 and hw_seasonal_range >= 0.08 * series_mean:
+                hw_mid = pd.Series(fit.forecast(n).values, index=future_idx)
+                return hw_mid, low_hug, high_hug
+        except Exception:
+            pass
+
+    return mid_hug, low_hug, high_hug
+
+
+def _seasonal_hugging_forecast(
+    series: pd.Series, future_idx: pd.DatetimeIndex
+) -> tuple:
+    """Recency-weighted same-month averages + trend, with P25/P75 prediction bands.
+
+    Returns (median_series, p25_series, p75_series).
+
+    For each forecast month M:
+      median[M]  = recency-weighted mean of every historical month with calendar
+                   month == M  (recent years weighted more heavily)
+      p25/p75[M] = 25th / 75th percentile of those same historical values
+
+    The P25–P75 band directly answers:
+      • Upper band high?  → cut opportunity, spend was historically elevated
+      • Lower band low?   → savings opportunity, that month tends to be cheap
+      • Wide band?        → unpredictable month, budget conservatively
+      • Narrow band?      → highly consistent, easy to plan around
+
+    A trend multiplier  (1 + annual_growth)^(months_ahead/12)  gently tilts all
+    three curves up or down together so the band follows the recent trajectory.
+    """
+    # ── Per-calendar-month historical data ───────────────────────────────────────
+    monthly_raw: dict[int, list[float]] = {m: [] for m in range(1, 13)}
+    for ts, val in series.items():
+        monthly_raw[ts.month].append(float(val))
+
+    # Recency-weighted mean per calendar month
+    monthly_weighted_mid: dict[int, float] = {}
+    for cal_month, raw_vals in monthly_raw.items():
+        if not raw_vals:
+            monthly_weighted_mid[cal_month] = float(series.mean())
+            continue
+        pts = [(ts.year, float(val))
+               for ts, val in series.items() if ts.month == cal_month]
+        years_sorted = sorted({y for y, _ in pts})
+        year_rank = {yr: i + 1 for i, yr in enumerate(years_sorted)}
+        total_w = sum(year_rank[y] for y, _ in pts)
+        monthly_weighted_mid[cal_month] = sum(year_rank[y] * v for y, v in pts) / total_w
+
+    # ── Annual trend from recent vs prior period ──────────────────────────────────
+    if len(series) >= 24:
+        recent_mean = float(series.iloc[-12:].mean())
+        prior_mean  = float(series.iloc[-24:-12].mean())
+    elif len(series) >= 6:
+        mid = len(series) // 2
+        recent_mean = float(series.iloc[mid:].mean())
+        prior_mean  = float(series.iloc[:mid].mean())
+    else:
+        recent_mean = prior_mean = float(series.mean())
+
+    annual_growth = max(-0.25, min(0.25, recent_mean / prior_mean - 1.0)) if prior_mean > 0 else 0.0
+
+    # ── Build three curves ────────────────────────────────────────────────────────
+    mid_vals, low_vals, high_vals = [], [], []
+    for i, future_date in enumerate(future_idx):
+        cal_month = future_date.month
+        raw = monthly_raw[cal_month]
+        trend_factor = (1.0 + annual_growth) ** ((i + 1) / 12.0)
+
+        mid  = monthly_weighted_mid[cal_month] * trend_factor
+
+        if len(raw) >= 2:
+            low  = float(np.percentile(raw, 25)) * trend_factor
+            high = float(np.percentile(raw, 75)) * trend_factor
+        elif len(raw) == 1:
+            low  = raw[0] * 0.80 * trend_factor
+            high = raw[0] * 1.20 * trend_factor
+        else:
+            low  = mid * 0.85
+            high = mid * 1.15
+
+        mid_vals.append(mid)
+        low_vals.append(low)
+        high_vals.append(high)
+
+    # ── Smooth bridge: anchor forecast start to last observed value ──────────────
+    # Without this, a sharp gap appears at the historical→forecast boundary when
+    # the last actual month differs from its seasonal average (e.g. a December spike
+    # followed by a January seasonal dip).  We scale the first n_bridge forecast
+    # points toward the last observed value, then linearly decay back to the pure
+    # seasonal forecast so the transition looks natural.
+    if mid_vals and mid_vals[0] > 0:
+        last_obs = float(series.iloc[-1])
+        scale0   = last_obs / mid_vals[0]
+        scale0   = max(0.3, min(3.0, scale0))   # clamp extreme-outlier months
+        n_bridge = min(len(mid_vals), 3)
+        for i in range(len(mid_vals)):
+            w = max(0.0, 1.0 - i / n_bridge)    # 1.0 at i=0, 0.0 at i=n_bridge
+            s = 1.0 + (scale0 - 1.0) * w
+            mid_vals[i]  *= s
+            low_vals[i]  *= s
+            high_vals[i] *= s
+
+    return (
+        pd.Series(mid_vals, index=future_idx),
+        pd.Series(low_vals, index=future_idx),
+        pd.Series(high_vals, index=future_idx),
+    )
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────────
@@ -90,10 +206,13 @@ def forecast_spending(req: ForecastReq):
         if len(g) < 2:
             continue
 
-        fc = _ets_forecast(g, req.forecast_months).clip(lower=0)
+        fc_mid, fc_low, fc_high = _ets_forecast(g, req.forecast_months)
+        fc_mid  = fc_mid.clip(lower=0)
+        fc_low  = fc_low.clip(lower=0)
+        fc_high = fc_high.clip(lower=0)
 
         last_val = float(g.iloc[-1])
-        fc_last = float(fc.iloc[-1])
+        fc_last  = float(fc_mid.iloc[-1])
         trend = "up" if fc_last > last_val * 1.03 else ("down" if fc_last < last_val * 0.97 else "stable")
 
         results[str(cat)] = {
@@ -102,8 +221,13 @@ def forecast_spending(req: ForecastReq):
                 for m, a in g.items()
             ],
             "forecast": [
-                {"month": m.strftime("%Y-%m"), "amount": round(float(a), 2)}
-                for m, a in fc.items()
+                {
+                    "month": m.strftime("%Y-%m"),
+                    "amount": round(float(a), 2),
+                    "low":    round(float(l), 2),
+                    "high":   round(float(h), 2),
+                }
+                for (m, a), l, h in zip(fc_mid.items(), fc_low.values, fc_high.values)
             ],
             "trend": trend,
         }

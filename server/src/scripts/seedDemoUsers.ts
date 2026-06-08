@@ -71,6 +71,41 @@ function payDates(months: number): Date[] {
   return dates;
 }
 
+// ── Seasonal spending multipliers (per calendar month, 0=Jan … 11=Dec) ────────
+// Reflects real Canadian seasonal patterns: heating in winter, travel & gas in
+// summer, holiday shopping Nov-Dec. Applied to amounts so monthly totals vary.
+
+const SEASONAL_FACTORS: Record<string, number[]> = {
+  //                          Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec
+  Groceries:           [1.05, 1.00, 0.98, 0.95, 0.95, 0.92, 0.90, 0.90, 0.95, 1.00, 1.05, 1.22],
+  Gas:                 [0.82, 0.83, 0.93, 1.03, 1.12, 1.22, 1.28, 1.24, 1.10, 0.98, 0.88, 0.82],
+  Restaurants:         [0.75, 0.78, 0.87, 0.93, 1.00, 1.12, 1.20, 1.20, 1.05, 0.98, 0.92, 1.22],
+  Coffee:              [1.15, 1.12, 1.05, 1.00, 0.95, 0.87, 0.83, 0.83, 0.97, 1.05, 1.10, 1.15],
+  Utilities:           [1.55, 1.48, 1.25, 0.90, 0.68, 0.58, 0.65, 0.72, 0.80, 1.00, 1.22, 1.45],
+  Shopping:            [0.72, 0.72, 0.83, 0.90, 1.00, 0.93, 0.97, 1.05, 1.15, 1.12, 1.32, 1.65],
+  Entertainment:       [0.78, 0.78, 0.87, 0.92, 1.00, 1.15, 1.28, 1.28, 1.05, 0.97, 0.90, 1.12],
+  Travel:              [0.60, 0.60, 0.75, 0.88, 1.08, 1.38, 1.65, 1.70, 1.12, 0.82, 0.72, 1.32],
+  Healthcare:          [1.28, 1.20, 1.08, 1.00, 0.90, 0.80, 0.78, 0.80, 0.97, 1.05, 1.18, 1.08],
+  "Kids Activities":   [0.60, 0.72, 0.90, 1.05, 1.08, 0.22, 0.18, 0.22, 1.20, 1.28, 1.18, 0.75],
+  "Business Expenses": [0.90, 0.95, 1.00, 1.05, 1.07, 0.88, 0.72, 0.78, 1.07, 1.12, 1.07, 0.93],
+  Household:           [0.72, 0.78, 1.12, 1.28, 1.32, 1.05, 0.93, 0.88, 0.88, 0.93, 0.87, 0.82],
+  Auto:                [0.93, 0.93, 1.12, 1.18, 1.12, 0.95, 0.88, 0.87, 1.00, 1.07, 1.02, 0.93],
+  Gifts:               [0.88, 1.10, 0.90, 0.92, 1.08, 0.92, 0.90, 0.90, 0.90, 0.95, 1.10, 1.65],
+};
+const DEFAULT_SEASONAL = [0.90, 0.92, 0.96, 0.98, 1.01, 1.04, 1.06, 1.06, 1.02, 1.00, 0.98, 1.06];
+
+function seasonalFactor(category: string, month: number): number {
+  return (SEASONAL_FACTORS[category] ?? DEFAULT_SEASONAL)[month];
+}
+
+/** Calendar month (0-11) for a date `monthsAgo` months before _now. */
+function calendarMonthOf(monthsAgo: number): number {
+  const d = new Date(_now);
+  d.setDate(1);
+  d.setMonth(d.getMonth() - monthsAgo);
+  return d.getMonth();
+}
+
 // ── Canadian content ──────────────────────────────────────────────────────────
 
 const GROCERIES = ["Loblaw", "Metro", "No Frills", "Sobeys", "FreshCo", "Food Basics", "Real Canadian Superstore", "IGA", "Maxi", "Walmart Supercenter"];
@@ -654,7 +689,8 @@ export const PROFILES: DemoProfile[] = [
 function buildTransactions(
   userId: any,
   acctMap: Map<string, any>,
-  profile: DemoProfile
+  profile: DemoProfile,
+  historyMonths: number
 ): any[] {
   const txns: any[] = [];
   const LIABILITY_TYPES = new Set(["credit-card", "line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
@@ -672,7 +708,21 @@ function buildTransactions(
     txns.push({ userId, accountId, type, amount: parseFloat(amount.toFixed(2)), category, description, date, source: "manual" });
   };
 
-  // ── Opening balances (36 months ago) ──────────────────────────────────────────
+  // ── Per-year "character" factors ─────────────────────────────────────────────
+  // Each (yearIndex, category) pair gets a stable random multiplier in [0.88, 1.12].
+  // This makes every year slightly different from the next while staying recognisably
+  // similar — exactly the "year-to-year variation but similar pattern" effect we want.
+  const numYears = Math.ceil(historyMonths / 12) + 1;
+  const allCats = [...new Set([
+    ...profile.spending.map(r => r.category),
+    "Healthcare", "Auto", "Gifts", "Household", "Education",
+  ])];
+  const yearChars = new Map<string, number[]>();
+  for (const cat of allCats) {
+    yearChars.set(cat, Array.from({ length: numYears }, () => rnd(0.88, 1.12)));
+  }
+
+  // ── Opening balances ──────────────────────────────────────────────────────────
   for (const acct of profile.accounts) {
     if (acct.openingBalance <= 0) continue;
     const accountId = acctMap.get(acct.key);
@@ -685,40 +735,53 @@ function buildTransactions(
       amount: acct.openingBalance,
       category: isLiability ? "Opening Balance (Debt)" : "Opening Balance",
       description: `Opening Balance — ${acct.name}`,
-      date: txnDate(36, 1),
+      date: txnDate(historyMonths, 1),
       source: "manual",
     });
   }
 
-  // ── Pay dates over 36 months ──────────────────────────────────────────────────
-  const pays = payDates(36);
+  // ── Pay dates ─────────────────────────────────────────────────────────────────
+  const pays = payDates(historyMonths);
   for (const date of pays) {
     add("income", rnd(profile.netPayBiweekly * 0.96, profile.netPayBiweekly * 1.04), "Employment Income", profile.payDesc, date, profile.payAccountKey);
   }
 
-  // ── GST/HST Credit (quarterly — Jan, Apr, Jul, Oct) ──────────────────────────
-  for (let m = 35; m >= 0; m--) {
+  // ── GST/HST Credit (quarterly) and annual tax refund ─────────────────────────
+  for (let m = historyMonths - 1; m >= 0; m--) {
     const base = new Date(_now);
     base.setDate(1);
     base.setMonth(base.getMonth() - m);
     if ([0, 3, 6, 9].includes(base.getMonth())) {
       add("income", rnd(90, 160), "Government Transfer", "GST/HST Credit — CRA", txnDate(m, 5), profile.payAccountKey);
     }
-    // Tax refund (March-April of each year)
     if (base.getMonth() === 3) {
       add("income", rnd(400, 1800), "Tax Refund", "CRA Tax Refund — Direct Deposit", txnDate(m, rndInt(10, 25)), profile.payAccountKey);
     }
   }
 
   // ── Monthly spending rules ────────────────────────────────────────────────────
-  for (let m = 35; m >= 0; m--) {
+  // Amount = base range × seasonal factor × year-character factor × inflation factor
+  //   seasonal:    reflects the calendar month's typical spend pattern (heating in Jan, travel in Jul, etc.)
+  //   year-char:   a stable per-(year,category) multiplier [0.88–1.12] so each year "feels" slightly different
+  //   inflation:   ~2.5% per year; older months are proportionally cheaper
+  for (let m = historyMonths - 1; m >= 0; m--) {
+    const month     = calendarMonthOf(m);             // 0=Jan … 11=Dec
+    const yearIndex = Math.floor(m / 12);             // 0=current year, 1=last year, …
+    const inflation = 1 / Math.pow(1.025, yearIndex); // older = cheaper
+
     for (const rule of profile.spending) {
-      const count = Math.round(rule.perMonth + rnd(-0.5, 0.5));
+      const seasonal  = seasonalFactor(rule.category, month);
+      const yearChar  = yearChars.get(rule.category)?.[yearIndex] ?? 1.0;
+      const scale     = seasonal * yearChar * inflation;
+
+      // Vary count slightly with season for high-frequency categories
+      const countScale = seasonal > 1.15 ? 1.2 : seasonal < 0.85 ? 0.8 : 1.0;
+      const count = Math.max(0, Math.round(rule.perMonth * countScale + rnd(-0.5, 0.5)));
+
       for (let i = 0; i < count; i++) {
-        const day = rndInt(1, 28);
-        const amount = rnd(rule.min, rule.max);
-        const desc = pick(rule.descriptions);
-        add("expense", amount, rule.category, desc, txnDate(m, day), rule.accountKey);
+        const rawAmount = rnd(rule.min, rule.max);
+        const amount    = parseFloat((rawAmount * scale).toFixed(2));
+        add("expense", Math.max(1, amount), rule.category, pick(rule.descriptions), txnDate(m, rndInt(1, 28)), rule.accountKey);
       }
     }
 
@@ -746,14 +809,12 @@ function buildTransactions(
       const sourceId = acctMap.get(lp.sourceKey);
       const liabId = acctMap.get(lp.accountKey);
       if (!sourceId || !liabId) continue;
-      // Debit from chequing
       txns.push({ userId, accountId: sourceId, type: "expense", amount: lp.monthly, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
-      // Credit (payment) on liability
       txns.push({ userId, accountId: liabId, type: "income", amount: lp.monthly, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
     }
 
     // ── Random one-off events (healthcare, car repairs, gifts, etc.) ──────────
-    if (Math.random() < 0.4) {
+    if (_rng() < 0.4) {
       const oneOffs = [
         { cat: "Healthcare", descs: ["Dental Cleaning — Dentalcorp", "Optometrist", "Physiotherapy"], min: 80, max: 350 },
         { cat: "Auto", descs: ["Canadian Tire Auto Service", "Speedy Auto Service", "Oil Change"], min: 60, max: 400 },
@@ -762,7 +823,11 @@ function buildTransactions(
         { cat: "Education", descs: ["Udemy Course", "LinkedIn Learning", "Book Purchase"], min: 15, max: 150 },
       ];
       const ev = pick(oneOffs);
-      add("expense", rnd(ev.min, ev.max), ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
+      const sSeasonal  = seasonalFactor(ev.cat, month);
+      const sYearChar  = yearChars.get(ev.cat)?.[yearIndex] ?? 1.0;
+      const sInflation = 1 / Math.pow(1.025, yearIndex);
+      const evAmount = Math.max(1, parseFloat((rnd(ev.min, ev.max) * sSeasonal * sYearChar * sInflation).toFixed(2)));
+      add("expense", evAmount, ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
     }
   }
 
@@ -771,7 +836,7 @@ function buildTransactions(
 
 // ── Net worth snapshot builder ────────────────────────────────────────────────
 
-function buildSnapshots(userId: any, profile: DemoProfile): any[] {
+function buildSnapshots(userId: any, profile: DemoProfile, historyMonths: number): any[] {
   const LIABILITY_TYPES = new Set(["credit-card", "line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
   const snapshots: any[] = [];
 
@@ -782,10 +847,10 @@ function buildSnapshots(userId: any, profile: DemoProfile): any[] {
     else baseAssets += acct.openingBalance;
   }
 
-  // Generate quarterly snapshots over 3 years
-  for (let m = 36; m >= 0; m -= 3) {
-    const growthFactor = 1 + (0.005 * (36 - m)); // slight growth over time
-    const paydownFactor = 1 - (0.01 * (36 - m)); // liabilities decrease over time
+  // Generate quarterly snapshots over the full history window
+  for (let m = historyMonths; m >= 0; m -= 3) {
+    const growthFactor = 1 + (0.005 * (historyMonths - m));
+    const paydownFactor = 1 - (0.01 * (historyMonths - m));
     const totalAssets = Math.round(baseAssets * growthFactor);
     const totalLiabilities = Math.max(0, Math.round(baseLiabilities * paydownFactor));
     const netWorth = totalAssets - totalLiabilities;
@@ -830,6 +895,8 @@ export interface SeedOpts {
   rng?: () => number;
   /** Base date for transaction history — omit to use current date */
   baseDate?: Date;
+  /** Years of history to generate: 3–7; defaults to 5 */
+  years?: number;
 }
 
 // ── Data-only seeder (for an EXISTING user — no User doc created) ─────────────
@@ -837,6 +904,7 @@ export interface SeedOpts {
 export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: SeedOpts): Promise<void> {
   _rng = opts?.rng ?? Math.random;
   _now = opts?.baseDate ?? new Date();
+  const historyMonths = Math.max(36, Math.min(84, (opts?.years ?? 5) * 12));
 
   const acctMap = new Map<string, any>();
   for (const def of profile.accounts) {
@@ -847,7 +915,7 @@ export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: 
     acctMap.set(def.key, acct._id);
   }
 
-  const txns = buildTransactions(userId, acctMap, profile);
+  const txns = buildTransactions(userId, acctMap, profile, historyMonths);
   await Transaction.insertMany(txns);
 
   const now = new Date();
@@ -874,16 +942,16 @@ export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: 
       targetDate, priority: g.priority || "medium", status: "active",
     });
   }
-  const snapshots = buildSnapshots(userId, profile);
+  const snapshots = buildSnapshots(userId, profile, historyMonths);
   await NetWorthSnapshot.insertMany(snapshots);
 }
 
 // ── Seeder for a single profile ───────────────────────────────────────────────
 
 export async function seedProfile(profile: DemoProfile, passwordHash: string, opts?: SeedOpts): Promise<void> {
-  // Apply PRNG and base date for this run (module-level so helpers can use them)
   _rng  = opts?.rng      ?? Math.random;
   _now  = opts?.baseDate ?? new Date();
+  const historyMonths = Math.max(36, Math.min(84, (opts?.years ?? 5) * 12));
 
   const existing = await User.findOne({ email: profile.email });
   if (existing) {
@@ -912,7 +980,7 @@ export async function seedProfile(profile: DemoProfile, passwordHash: string, op
   }
 
   // Insert transactions in bulk
-  const txns = buildTransactions(userId, acctMap, profile);
+  const txns = buildTransactions(userId, acctMap, profile, historyMonths);
   await Transaction.insertMany(txns);
 
   // Budgets
@@ -946,7 +1014,7 @@ export async function seedProfile(profile: DemoProfile, passwordHash: string, op
   }
 
   // Net worth snapshots
-  const snapshots = buildSnapshots(userId, profile);
+  const snapshots = buildSnapshots(userId, profile, historyMonths);
   await NetWorthSnapshot.insertMany(snapshots);
 
   console.log(`  ✓  ${profile.email} — ${txns.length} transactions, ${profile.accounts.length} accounts`);

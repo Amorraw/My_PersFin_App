@@ -75,8 +75,7 @@ async function restoreFromSnapshot(userId: mongoose.Types.ObjectId): Promise<boo
 }
 
 // ── POST /api/demo/activate ───────────────────────────────────────────────────
-// Body: { profileIndex: number }  (1–10)
-// Loads a financial profile template for the current user and saves a snapshot.
+// Body: { profileIndex: number, years?: number }  (profileIndex 1–10, years 3–7)
 
 router.post("/activate", async (req: Request, res: Response) => {
   const userId = (req.user as any)._id as mongoose.Types.ObjectId;
@@ -84,17 +83,18 @@ router.post("/activate", async (req: Request, res: Response) => {
   if (!profileIndex || profileIndex < 1 || profileIndex > 10) {
     return res.status(400).json({ message: "profileIndex must be 1–10" });
   }
+  const years = Math.max(3, Math.min(7, parseInt(req.body.years, 10) || 5));
 
   try {
     const { seedDataForUser, PROFILES } = await import("../scripts/seedDemoUsers");
     const profile = (PROFILES as any[])[profileIndex - 1];
 
     await clearUserData(userId);
-    await seedDataForUser(userId, profile);
+    await seedDataForUser(userId, profile, { years });
     await takeSnapshot(userId, profileIndex);
 
-    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex });
-    return res.json({ ok: true, message: `Profile "${profile.firstName}'s" data loaded. Reload to see it.`, profileIndex });
+    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex, demoHistoryYears: years });
+    return res.json({ ok: true, message: `Profile "${profile.firstName}'s" data loaded (${years} years of history). Reload to see it.`, profileIndex });
   } catch (err: any) {
     console.error("Demo activate error:", err);
     return res.status(500).json({ message: err.message || "Activate failed." });
@@ -102,8 +102,8 @@ router.post("/activate", async (req: Request, res: Response) => {
 });
 
 // ── POST /api/demo/regenerate ─────────────────────────────────────────────────
-// Wipes current data and re-seeds with fresh random values (same profile type).
-// Saves a new snapshot so Reset will restore to THIS new dataset.
+// Wipes current data and re-seeds with fresh random values using the same profile
+// and the same history-years choice. Saves a new snapshot.
 
 router.post("/regenerate", async (req: Request, res: Response) => {
   const userId = (req.user as any)._id as mongoose.Types.ObjectId;
@@ -111,16 +111,17 @@ router.post("/regenerate", async (req: Request, res: Response) => {
   if (!user?.demoProfileIndex) {
     return res.status(400).json({ message: "No demo profile loaded. Go to Demo Profiles and load one first." });
   }
+  const years = (user as any).demoHistoryYears ?? 5;
 
   try {
     const { seedDataForUser, PROFILES } = await import("../scripts/seedDemoUsers");
     const profile = (PROFILES as any[])[user.demoProfileIndex - 1];
 
     await clearUserData(userId);
-    await seedDataForUser(userId, profile); // Math.random + current date (defaults)
+    await seedDataForUser(userId, profile, { years });
     await takeSnapshot(userId, user.demoProfileIndex);
 
-    return res.json({ ok: true, message: "New random dataset generated. Reload to see your fresh data." });
+    return res.json({ ok: true, message: `New random dataset generated (${years} years of history). Reload to see your fresh data.` });
   } catch (err: any) {
     console.error("Demo regenerate error:", err);
     return res.status(500).json({ message: err.message || "Regenerate failed." });

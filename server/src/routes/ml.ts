@@ -28,11 +28,20 @@ async function proxyML(endpoint: string, body: object): Promise<any> {
   return raw.json();
 }
 
-async function buildMonthlySpending(userId: string, months: number) {
+// Maps an "analysis period" selection to a lookback start date — null means "All Time" (no lower bound)
+function rangeToSince(range: unknown): Date | null {
+  const years = range === "1y" ? 1 : range === "2y" ? 2 : range === "3y" ? 3 : range === "all" ? null : 1;
+  if (years === null) return null;
   const since = new Date();
-  since.setMonth(since.getMonth() - months);
+  since.setFullYear(since.getFullYear() - years);
+  return since;
+}
 
-  const txns = await Transaction.find({ userId, type: "expense", date: { $gte: since } });
+async function buildMonthlySpending(userId: string, since: Date | null) {
+  const filter: any = { userId, type: "expense" };
+  if (since) filter.date = { $gte: since };
+
+  const txns = await Transaction.find(filter);
 
   const map = new Map<string, number>();
   for (const t of txns) {
@@ -51,7 +60,7 @@ async function buildMonthlySpending(userId: string, months: number) {
 router.post("/forecast", async (req: Request, res: ExpressResponse) => {
   try {
     const userId = (req.user as any).id;
-    const monthly = await buildMonthlySpending(userId, 12);
+    const monthly = await buildMonthlySpending(userId, rangeToSince(req.body.range));
     if (monthly.length === 0) {
       return res.json({ forecasts: {}, months_forecast: 0, message: "Not enough transaction history for a forecast yet." });
     }
@@ -69,12 +78,13 @@ router.post("/forecast", async (req: Request, res: ExpressResponse) => {
 router.post("/anomalies", async (req: Request, res: ExpressResponse) => {
   try {
     const userId = (req.user as any).id;
-    const since = new Date();
-    since.setMonth(since.getMonth() - 3);
-    const txns = await Transaction.find({ userId, date: { $gte: since } });
+    const since = rangeToSince(req.body.range);
+    const filter: any = { userId };
+    if (since) filter.date = { $gte: since };
+    const txns = await Transaction.find(filter);
 
     if (txns.length === 0) {
-      return res.json({ anomalies: [], totalScanned: 0, anomalyCount: 0, message: "No transactions in the past 3 months to scan." });
+      return res.json({ anomalies: [], totalScanned: 0, anomalyCount: 0, message: "No transactions in the selected period to scan." });
     }
 
     const transactions = txns.map(t => ({
@@ -96,7 +106,7 @@ router.post("/anomalies", async (req: Request, res: ExpressResponse) => {
 router.post("/suggest-budgets", async (req: Request, res: ExpressResponse) => {
   try {
     const userId = (req.user as any).id;
-    const monthly = await buildMonthlySpending(userId, 6);
+    const monthly = await buildMonthlySpending(userId, rangeToSince(req.body.range));
     if (monthly.length === 0) {
       return res.json({ suggestions: [], monthsAnalyzed: 0, message: "Not enough transaction history for budget suggestions yet." });
     }

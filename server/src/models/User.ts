@@ -9,7 +9,8 @@ export interface IUser extends Document {
   resetToken?: string;
   resetTokenExpires?: Date;
   createdAt: Date;
-  demoProfileIndex?: number; // 1–10 when user has demo data loaded; undefined otherwise
+  demoProfileIndex?: number;   // 1–10 when user has demo data loaded; undefined otherwise
+  demoHistoryYears?: number;   // 3–7; years of history generated for the active demo profile
 }
 
 const userSchema = new Schema<IUser>({
@@ -21,7 +22,8 @@ const userSchema = new Schema<IUser>({
   resetToken: String,
   resetTokenExpires: Date,
   createdAt: { type: Date, default: Date.now },
-  demoProfileIndex: { type: Number, default: null },
+  demoProfileIndex:  { type: Number, default: null },
+  demoHistoryYears:  { type: Number, default: null },
 });
 
 export const User = mongoose.model<IUser>("User", userSchema);

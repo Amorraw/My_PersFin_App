@@ -24,6 +24,29 @@
   margin: 4px 0 0;
 }
 
+.ml-page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ml-analysis-range {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ml-analysis-range-label {
+  font-size: 0.65rem;
+  color: var(--text-light);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ── Error notice ──────────────────────────── */
 .ml-error-notice {
   background: #fef2f2;
@@ -48,6 +71,46 @@
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
+}
+
+/* ── 4-Column Grid Layout ──────────────────── */
+.ml-section-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.ml-grid-left {
+  grid-column: 1 / 4;  /* Columns 1-3 */
+}
+
+.ml-grid-right {
+  grid-column: 4 / 5;  /* Column 4 */
+}
+
+/* Responsive: Stack on smaller screens */
+@media (max-width: 1200px) {
+  .ml-grid-left {
+    grid-column: 1 / 5;
+  }
+
+  .ml-grid-right {
+    grid-column: 1 / 5;
+  }
+}
+
+@media (max-width: 768px) {
+  .ml-section-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ml-grid-left {
+    grid-column: 1;
+  }
+  
+  .ml-grid-right {
+    grid-column: 1;
+  }
 }
 
 .ml-section-header {
@@ -76,6 +139,37 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* Forecast header: title spans columns 1-2, select sits in column 3 (left-aligned) */
+.ml-forecast-header {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ml-forecast-header > div:first-child {
+  grid-column: 1 / 3;
+}
+
+.ml-forecast-select-col {
+  grid-column: 3 / 4;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+/* Sized to fit the longest option ("6 months ahead" — 14 chars) plus ~7 chars of breathing room */
+.ml-forecast-select-col .ml-select {
+  width: 21ch;
+}
+
+@media (max-width: 768px) {
+  .ml-forecast-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
 /* ── Select ─────────────────────────────────── */
@@ -278,3 +372,4 @@
   margin-top: 6px;
   margin-bottom: 0;
 }
+
