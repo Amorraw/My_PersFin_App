@@ -89,51 +89,6 @@ interface SetupFormFields {
   balance: number;
 }
 
-interface SetupFormProps {
-  fields: SetupFormFields;
-  onChange: (f: SetupFormFields) => void;
-  compact?: boolean;
-}
-
-function AccountSetupFields({ fields, onChange, compact }: SetupFormProps) {
-  return (
-    <>
-      <div className={compact ? "setup-section" : "setup-section"}>
-        {!compact && <div className="setup-section-label"><span className="setup-step-num">1</span>Select your bank</div>}
-        {compact  && <div className="setup-section-label" style={{ marginBottom: 8 }}>Select your bank</div>}
-        <BankSelector value={fields.bank} onChange={v => onChange({ ...fields, bank: v })} />
-      </div>
-
-      <div className="setup-fields-row" style={{ marginTop: compact ? 12 : 0 }}>
-        <label className="setup-field">
-          Account Type
-          <select value={fields.type} onChange={e => onChange({ ...fields, type: e.target.value })}>
-            {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </label>
-        <label className="setup-field setup-field-grow">
-          Account Name
-          <input
-            type="text"
-            value={fields.name}
-            onChange={e => onChange({ ...fields, name: e.target.value })}
-            placeholder="e.g. TD Chequing"
-            required
-          />
-        </label>
-        <label className="setup-field">
-          Opening Balance (CAD)
-          <input
-            type="number"
-            step="0.01"
-            value={fields.balance}
-            onChange={e => onChange({ ...fields, balance: parseFloat(e.target.value) || 0 })}
-          />
-        </label>
-      </div>
-    </>
-  );
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Tab = "csv" | "pdf";

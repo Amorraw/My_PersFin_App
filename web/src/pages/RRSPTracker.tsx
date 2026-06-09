@@ -500,7 +500,7 @@ function WithdrawalTable({ rows, onDelete }: { rows: RRSPWithdrawal[]; onDelete:
   );
 }
 
-function Modal({ title, subtitle, children, onClose }: { title: string; subtitle?: string; children: React.ReactNode; onClose: () => void }) {
+function Modal({ title, subtitle, children, onClose: _onClose }: { title: string; subtitle?: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
       <div style={{ background: "var(--bg-card, #fff)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.25)", maxHeight: "90vh", overflowY: "auto" }}>

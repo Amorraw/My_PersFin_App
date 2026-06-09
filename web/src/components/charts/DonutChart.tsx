@@ -1,6 +1,6 @@
 // Donut/pie chart with optional centre label, percentage labels, and legend
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { PALETTE, TOOLTIP_STYLE, categoryColor, fmtCAD, fmtPct } from "./ChartTheme";
+import { TOOLTIP_STYLE, categoryColor, fmtCAD, fmtPct } from "./ChartTheme";
 
 export interface DonutSlice {
   name:   string;

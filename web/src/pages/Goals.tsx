@@ -1,6 +1,5 @@
 // Financial goals tracker with progress gauges and monthly contribution guidance
 import { useState, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
 import { api } from '../api';
 import './Goals.css';
 import { ProgressGauge, GaugeRow, fmtMoney } from '../components/charts';
@@ -22,7 +21,6 @@ interface Goal {
 
 // Renders goal cards with progress gauges and CRUD form
 export default function Goals() {
-  const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
