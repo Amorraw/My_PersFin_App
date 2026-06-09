@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "npm run test --prefix server && npm run test --prefix web"
+  },
   "dependencies": {
     "node": "^24.15.0"
   }
