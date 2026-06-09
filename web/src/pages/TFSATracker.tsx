@@ -186,7 +186,6 @@ export default function TFSATracker() {
   // ── Shared inline styles ──────────────────────────────────────────────────────
   const card  = { background: "var(--bg-card, #fff)", border: "1px solid var(--border, #e5e7eb)", borderRadius: 10 } as const;
   const input = { width: "100%", padding: "9px 12px", border: "1px solid var(--border, #e5e7eb)", borderRadius: 8, fontSize: "0.9rem", boxSizing: "border-box" as const };
-  const _label = { display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: 5 } as const;
   const btnPrimary   = { padding: "10px 22px", background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 } as const;
   const btnSecondary = { padding: "10px 20px", border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer" } as const;
 
