@@ -1,3 +1,4 @@
+// Shared colours, formatters, and Recharts style tokens used by all chart components
 // ── Shared colour palette ────────────────────────────────────────────────────
 
 export const COLORS = {
@@ -38,6 +39,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   "Other":           "#9CA3AF",
 };
 
+// Falls back to the rotating PALETTE when a category has no named colour
 export function categoryColor(name: string, index: number): string {
   return CATEGORY_COLORS[name] ?? PALETTE[index % PALETTE.length];
 }
@@ -60,6 +62,7 @@ export function fmtMoney(value: number): string {
   }).format(n);
 }
 
+// Abbreviates large values to K/M for compact axis labels
 export function fmtCADShort(value: number): string {
   const n = isFinite(value) ? value : 0;
   const abs = Math.abs(n);

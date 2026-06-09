@@ -1,3 +1,4 @@
+// Radial gauge showing a 0-100 value with traffic-light colouring and centre text
 import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from "recharts";
 import { COLORS, fmtPct } from "./ChartTheme";
 
@@ -16,6 +17,7 @@ interface Props {
   invertScale?: boolean;
 }
 
+// Picks green/amber/red based on thresholds; invertScale=true treats higher as worse
 function resolveColor(
   value: number,
   color: string | undefined,
@@ -39,6 +41,7 @@ function resolveColor(
   }
 }
 
+// Renders single radial gauge with resolved colour and overlaid value text
 export default function ProgressGauge({
   value,
   label,
@@ -117,7 +120,7 @@ export default function ProgressGauge({
   );
 }
 
-/** Convenience row of multiple gauges */
+// Flex row wrapper for displaying several ProgressGauge components side by side
 export function GaugeRow({ children }: { children: React.ReactNode }) {
   return (
     <div style={{

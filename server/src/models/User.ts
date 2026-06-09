@@ -1,3 +1,4 @@
+// Mongoose schema for app users: credentials, profile, and province preference
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUser extends Document {

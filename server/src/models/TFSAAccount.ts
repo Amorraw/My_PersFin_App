@@ -1,3 +1,4 @@
+// Mongoose schema for TFSA accounts with annual contribution and withdrawal history
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITFSAAccount extends Document {

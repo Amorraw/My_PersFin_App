@@ -1,3 +1,5 @@
+// Debt strategy routes: avalanche/snowball analysis, consolidation, mortgage acceleration, and lump-sum optimization
+
 import { Router } from "express";
 import { Debt } from "../models/Debt";
 import { DebtStrategy } from "../models/DebtStrategy";
@@ -10,10 +12,7 @@ const router = Router();
 // Require authentication for all routes
 router.use(requireLogin);
 
-/**
- * POST /debt-strategies/analyze
- * Analyze debts and create an optimization strategy
- */
+// POST /analyze — run avalanche/snowball/hybrid strategy, save result, and return comparisons
 router.post("/analyze", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -111,10 +110,7 @@ router.post("/analyze", async (req, res, next) => {
   }
 });
 
-/**
- * GET /debt-strategies
- * Get all debt strategies for user
- */
+// GET / — list all saved debt strategies for the user
 router.get("/", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -128,10 +124,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-/**
- * GET /debt-strategies/:id
- * Get specific strategy
- */
+// GET /:id — fetch a single saved strategy by ID
 router.get("/:id", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -149,10 +142,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-/**
- * POST /debt-strategies/consolidation-analysis
- * Analyze debt consolidation options
- */
+// POST /consolidation-analysis — compare keeping individual debts vs consolidating at a new rate
 router.post("/consolidation-analysis", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -205,10 +195,7 @@ router.post("/consolidation-analysis", async (req, res, next) => {
   }
 });
 
-/**
- * POST /debt-strategies/mortgage-acceleration
- * Calculate mortgage payoff acceleration strategies
- */
+// POST /mortgage-acceleration — calculate years and interest saved by accelerating a mortgage
 router.post("/mortgage-acceleration", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -266,10 +253,7 @@ router.post("/mortgage-acceleration", async (req, res, next) => {
   }
 });
 
-/**
- * POST /debt-strategies/lump-sum-optimization
- * Determine best use of lump sum payment
- */
+// POST /lump-sum-optimization — find which debt to pay down for maximum interest savings
 router.post("/lump-sum-optimization", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -311,10 +295,7 @@ router.post("/lump-sum-optimization", async (req, res, next) => {
   }
 });
 
-/**
- * POST /debt-strategies/early-payoff
- * Calculate early payoff timeline with extra payments
- */
+// POST /early-payoff — show how extra monthly payments shorten a single debt's timeline
 router.post("/early-payoff", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -365,10 +346,7 @@ router.post("/early-payoff", async (req, res, next) => {
   }
 });
 
-/**
- * GET /debt-strategies/recommendations?debtIds=id1,id2
- * Get debt payoff recommendations
- */
+// GET /recommendations/analysis — generate tailored payoff recommendations for selected debts
 router.get("/recommendations/analysis", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;

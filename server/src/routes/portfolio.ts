@@ -1,3 +1,5 @@
+// Portfolio routes: rebalancing calculator, Canadian asset-location rules, and performance metrics
+
 import { Router } from "express";
 import { requireLogin } from "../middleware/requireLogin";
 
@@ -22,7 +24,7 @@ interface Holding {
   accountType: AccountType;
 }
 
-// POST /portfolio/rebalance
+// POST /rebalance — compute buy/sell trades needed to hit target asset-class weights
 router.post("/rebalance", (req, res, next) => {
   try {
     const {
@@ -106,7 +108,7 @@ router.post("/rebalance", (req, res, next) => {
   }
 });
 
-// POST /portfolio/asset-location — Canadian tax-law asset location rules
+// POST /asset-location — return Canadian tax-law rules for placing each asset type in TFSA/RRSP/non-reg
 router.post("/asset-location", (req, res, next) => {
   try {
     const { tfsaValue = 0, rrspValue = 0, fhsaValue = 0, nonRegValue = 0 } = req.body;
@@ -193,7 +195,7 @@ router.post("/asset-location", (req, res, next) => {
   }
 });
 
-// POST /portfolio/performance — calculate portfolio performance metrics
+// POST /performance — compute total return, annualized return, and tax-loss harvest flags per holding
 router.post("/performance", (req, res, next) => {
   try {
     const { holdings } = req.body as {

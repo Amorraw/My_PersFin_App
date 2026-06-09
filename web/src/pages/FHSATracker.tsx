@@ -1,5 +1,7 @@
+// FHSA account tracker with annual/lifetime room tracking for first-time buyers
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
+import { fmtMoney as CAD } from "../utils/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,6 @@ interface FHSASummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 const pct  = (n: number, d: number) => d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0;
 
 const BLANK_ACCOUNT = { institution: "", accountName: "", openedYear: new Date().getFullYear(), currentBalance: "", notes: "" };
@@ -54,6 +55,7 @@ const RULES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// Renders FHSA account cards with contribution modals and carry-forward room display
 export default function FHSATracker() {
   const [accounts, setAccounts]     = useState<FHSAAccount[]>([]);
   const [summary, setSummary]       = useState<FHSASummary | null>(null);

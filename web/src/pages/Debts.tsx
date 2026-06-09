@@ -1,7 +1,9 @@
+// Debt manager with avalanche/snowball payoff strategies and what-if optimizer
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 import type { Debt, PayoffStrategy } from "../types";
 import './Debts.css';
+import { fmtMoney as CAD } from "../utils/formatters";
 
 type Cadence = "monthly" | "biweekly";
 
@@ -54,7 +56,7 @@ interface DetectedDebt {
   alreadyImported: boolean;
 }
 
-// Per-row editable state for the detection panel
+// Per-row editable state lets each detected debt be corrected before import
 interface EditState {
   name: string;
   type: Debt["type"];
@@ -82,9 +84,7 @@ const TYPE_ICON: Record<string, string> = {
   "other":         "📋",
 };
 
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
+// Renders debt dashboard, payoff strategies, optimizer, and detection panel
 export default function Debts() {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [dashboard, setDashboard] = useState<DebtDashboard | null>(null);

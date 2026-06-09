@@ -1,10 +1,11 @@
+// Retirement projector: deterministic portfolio projection plus Monte Carlo simulation
 import { useState, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart, Area } from "recharts";
 import './RetirementProjector.css';
 import { fmtCADShort } from "../components/charts";
+import { fmtCAD as CAD } from "../utils/formatters";
 
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
+// Calculates inflation-adjusted portfolio value, income gap, and years until depletion
 function projectRetirement(
   currentAge: number,
   retirementAge: number,
@@ -16,6 +17,7 @@ function projectRetirement(
   cppMonthly: number,
   oasMonthly: number
 ) {
+  // Fisher equation: convert nominal return to real (inflation-adjusted) return
   const realReturn = (1 + expectedReturn / 100) / (1 + inflationRate / 100) - 1;
   const monthlyReal = realReturn / 12;
   const yearsToRetirement = retirementAge - currentAge;
@@ -59,6 +61,7 @@ function projectRetirement(
   return { totalAtRetirement, yearsLast, ageRunsOut: retirementAge + yearsLast, annualGap, safeWithdrawalRate, replacementRate, points };
 }
 
+// Box-Muller transform generates normally distributed random returns for Monte Carlo
 function randNormal(mean: number, std: number): number {
   let u = 0, v = 0;
   while (u === 0) u = Math.random();
@@ -69,6 +72,7 @@ function randNormal(mean: number, std: number): number {
 interface MCPoint { age: number; p10: number; p50: number; p90: number; base: number; band: number; }
 interface MCResult { successRate: number; comfortRate: number; medianFinal: number; points: MCPoint[]; }
 
+// Runs 3000 simulations to age 95 and returns success/comfort rates plus P10/P50/P90 bands
 function runMonteCarlo(currentAge: number, retirementAge: number, currentSavings: number, monthlyContribution: number, monthlyGap: number, sims = 3000): MCResult {
   const endAge = 95;
   const totalYears = endAge - currentAge;
@@ -109,6 +113,7 @@ function runMonteCarlo(currentAge: number, retirementAge: number, currentSavings
   return { successRate: (successes / sims) * 100, comfortRate: (comforts / sims) * 100, medianFinal: pct(yearlyBalances[totalYears], 0.5), points };
 }
 
+// Renders inputs panel, summary stats, projection chart, and optional Monte Carlo section
 export default function RetirementProjector() {
   const [currentAge, setCurrentAge] = useState(35);
   const [retirementAge, setRetirementAge] = useState(65);
@@ -120,6 +125,7 @@ export default function RetirementProjector() {
   const [cppMonthly, setCppMonthly] = useState(800);
   const [oasMonthly, setOasMonthly] = useState(698);
 
+  // Re-runs projection only when any input changes, not on every render
   const result = useMemo(
     () => projectRetirement(currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturn, inflationRate, desiredIncome, cppMonthly, oasMonthly),
     [currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturn, inflationRate, desiredIncome, cppMonthly, oasMonthly]
@@ -131,6 +137,7 @@ export default function RetirementProjector() {
   const [mcResult, setMcResult] = useState<MCResult | null>(null);
   const [runningMC, setRunningMC] = useState(false);
 
+  // setTimeout(0) yields to the browser so the "Running…" state renders before the heavy simulation
   const runMC = () => {
     setRunningMC(true);
     setTimeout(() => {

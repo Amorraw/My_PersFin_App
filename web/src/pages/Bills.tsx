@@ -1,3 +1,4 @@
+// Recurring bills tracker with upcoming-due alerts and monthly cost summary
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { api } from '../api';
@@ -25,6 +26,7 @@ interface BillsSummary {
   totalBills: number;
 }
 
+// Renders bill list with overdue flags, autopay badges, and summary cards
 export default function Bills() {
   const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);

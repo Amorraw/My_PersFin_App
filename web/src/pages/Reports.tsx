@@ -1,5 +1,7 @@
+// Printable financial reports: annual spending, RRSP, capital gains, net worth, and budget
 import { useState, useEffect, useCallback, useRef } from "react";
 import './Reports.css';
+import { fmtMoney as CAD, fmtPctSigned as PCT } from "../utils/formatters";
 
 type ReportType = "annual-spending" | "rrsp-summary" | "capital-gains" | "net-worth-trend" | "budget-performance";
 
@@ -11,13 +13,9 @@ const REPORT_META: Record<ReportType, { label: string; icon: string; desc: strin
   "budget-performance": { label: "Budget Performance YTD",     icon: "🎯", desc: "Actual vs. budget for each category" },
 };
 
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
-const PCT = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
-
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Renders report selector, fetched data table, and print/download controls
 export default function Reports() {
   const [activeReport, setActiveReport] = useState<ReportType>("annual-spending");
   const [year, setYear] = useState(new Date().getFullYear());

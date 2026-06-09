@@ -18,15 +18,6 @@
   max-width: 660px;
 }
 
-/* ── Section card ──────────────────────────── */
-.section-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
 .section-card h3 {
   margin: 0 0 8px 0;
   font-size: 0.78rem;
@@ -242,12 +233,6 @@
   line-height: 1.4;
 }
 
-/* ── Error ─────────────────────────────────── */
-.error-msg {
-  color: var(--danger);
-  font-size: 0.75rem;
-  margin-top: 6px;
-}
 
 /* ── Responsive ────────────────────────────── */
 @media (max-width: 600px) {

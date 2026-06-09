@@ -1,9 +1,8 @@
+// Canadian income-type guide with CCB, CPP, OAS, and capital-gains calculators
 import { useState } from "react";
 import { api } from "../api";
 import "./CanadianIncomeTypes.css";
-
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+import { fmtCAD as fmt } from "../utils/formatters";
 
 // ── CCB Calculator ───────────────────────────────────────────────────────────
 function CCBCalculator() {
@@ -245,6 +244,7 @@ const SLIPS = [
   },
 ];
 
+// Renders tabbed income-type explainers and interactive benefit calculators
 export default function CanadianIncomeTypes() {
   const [expanded, setExpanded] = useState<string | null>("T4");
 

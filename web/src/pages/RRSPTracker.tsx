@@ -1,3 +1,4 @@
+// RRSP account tracker managing contributions, withdrawals, and deduction limit
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
 import { fmtMoney } from "../components/charts";
@@ -35,7 +36,6 @@ interface RRSPSummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) => fmtMoney(n);
 const pct = (n: number, d: number) => (d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0);
 const TODAY = new Date().toISOString().split("T")[0];
 const CY = new Date().getFullYear();
@@ -59,6 +59,7 @@ const RRSP_RULES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// Renders RRSP account cards with contribution/withdrawal modals and room summary
 export default function RRSPTracker() {
   const [accounts, setAccounts] = useState<RRSPAccount[]>([]);
   const [summary,  setSummary]  = useState<RRSPSummary | null>(null);
@@ -227,12 +228,12 @@ export default function RRSPTracker() {
       {summary && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
           {[
-            { label: "Total RRSP Balance",     value: CAD(summary.totalBalance),      color: "#7c3aed" },
-            { label: "Deduction Limit (NOA)",  value: CAD(summary.deductionLimit),    color: "#6d28d9", sub: "From your Notice of Assessment" },
-            { label: `${CY} Contributed`,      value: CAD(summary.thisYearContrib),   color: "#6b7280" },
-            { label: "Remaining Room",         value: CAD(summary.remainingRoom),     color: summary.remainingRoom > 0 ? "#059669" : "#9ca3af" },
-            { label: "Total Contributed",      value: CAD(summary.totalContributed),  color: "#4c1d95" },
-            { label: "Total Withholding Paid", value: CAD(summary.totalWithholding),  color: "#dc2626" },
+            { label: "Total RRSP Balance",     value: fmtMoney(summary.totalBalance),      color: "#7c3aed" },
+            { label: "Deduction Limit (NOA)",  value: fmtMoney(summary.deductionLimit),    color: "#6d28d9", sub: "From your Notice of Assessment" },
+            { label: `${CY} Contributed`,      value: fmtMoney(summary.thisYearContrib),   color: "#6b7280" },
+            { label: "Remaining Room",         value: fmtMoney(summary.remainingRoom),     color: summary.remainingRoom > 0 ? "#059669" : "#9ca3af" },
+            { label: "Total Contributed",      value: fmtMoney(summary.totalContributed),  color: "#4c1d95" },
+            { label: "Total Withholding Paid", value: fmtMoney(summary.totalWithholding),  color: "#dc2626" },
           ].map(c => (
             <div key={c.label} style={{ ...card, padding: "14px 16px" }}>
               <div style={{ fontSize: "0.72rem", color: "var(--text-light)", marginBottom: 4 }}>{c.label}</div>
@@ -248,14 +249,14 @@ export default function RRSPTracker() {
         <div style={{ ...card, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: 6 }}>
             <span><strong>{CY} deduction room used</strong></span>
-            <span style={{ color: "var(--text-light)" }}>{CAD(summary.thisYearContrib)} / {CAD(summary.deductionLimit)}</span>
+            <span style={{ color: "var(--text-light)" }}>{fmtMoney(summary.thisYearContrib)} / {fmtMoney(summary.deductionLimit)}</span>
           </div>
           <div style={{ height: 12, background: "#e5e7eb", borderRadius: 6, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${roomPct}%`, background: roomPct >= 100 ? "#ef4444" : roomPct >= 90 ? "#f59e0b" : "#7c3aed", borderRadius: 6, transition: "width 0.4s" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-light)", marginTop: 4 }}>
-            <span>{roomPct}% used · {CAD(summary.remainingRoom)} remaining</span>
-            <span>Max {CY}: {CAD(summary.annualMax)}</span>
+            <span>{roomPct}% used · {fmtMoney(summary.remainingRoom)} remaining</span>
+            <span>Max {CY}: {fmtMoney(summary.annualMax)}</span>
           </div>
           {summary.deductionLimit === summary.annualMax && (
             <div style={{ marginTop: 8, fontSize: "0.78rem", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "6px 10px" }}>
@@ -295,12 +296,12 @@ export default function RRSPTracker() {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", minWidth: 130 }}>
-                    <div style={{ fontWeight: 700, color: "#7c3aed", fontSize: "1.1rem" }}>{CAD(acct.balance)}</div>
+                    <div style={{ fontWeight: 700, color: "#7c3aed", fontSize: "1.1rem" }}>{fmtMoney(acct.balance)}</div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
-                      In: {CAD(totalContrib)} · Out: {CAD(totalWithdraw)}
+                      In: {fmtMoney(totalContrib)} · Out: {fmtMoney(totalWithdraw)}
                     </div>
                     {acct.deductionLimit > 0 && (
-                      <div style={{ fontSize: "0.72rem", color: "#6d28d9" }}>Room: {CAD(acct.deductionLimit)}</div>
+                      <div style={{ fontSize: "0.72rem", color: "#6d28d9" }}>Room: {fmtMoney(acct.deductionLimit)}</div>
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -384,7 +385,7 @@ export default function RRSPTracker() {
           {cError && <ErrorBox msg={cError} />}
           {summary && summary.remainingRoom > 0 && (
             <div style={{ background: "#faf5ff", border: "1px solid #ddd6fe", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: "0.85rem", color: "#6d28d9" }}>
-              {CAD(summary.remainingRoom)} room remaining · Deadline: 60 days after Dec 31
+              {fmtMoney(summary.remainingRoom)} room remaining · Deadline: 60 days after Dec 31
             </div>
           )}
           <FieldGroup>

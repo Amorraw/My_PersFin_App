@@ -1,4 +1,6 @@
-﻿import { Router, Request, Response } from "express";
+﻿// Budget routes: CRUD, period summaries with rollover, payday plans, and Canadian templates
+
+import { Router, Request, Response } from "express";
 import { Budget } from "../models/Budget";
 import { Transaction } from "../models/Transaction";
 import { requireAuth } from "../middleware/requireLogin";
@@ -119,12 +121,14 @@ function getMajorMeta(category: string, categoryKey?: string): MajorMeta {
 // All routes require authentication
 router.use(requireAuth);
 
+// GET /templates/canada — return the preset Canadian budget template categories and amounts
 router.get("/templates/canada", (_req: Request, res: Response) => {
   return res.json({
     templates: CANADIAN_TEMPLATE_CATEGORIES
   });
 });
 
+// POST /templates/canada/apply — bulk-create Canadian template budgets skipping existing ones
 router.post("/templates/canada/apply", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -161,6 +165,7 @@ router.post("/templates/canada/apply", async (req: Request, res: Response) => {
   }
 });
 
+// POST /major-plan — upsert subcategory budgets for an entire major category at once
 router.post("/major-plan", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -267,6 +272,7 @@ router.post("/major-plan", async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /major-plan/:majorCategoryKey — remove all budgets for a major category and period
 router.delete("/major-plan/:majorCategoryKey", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -299,6 +305,7 @@ router.delete("/major-plan/:majorCategoryKey", async (req: Request, res: Respons
     return res.status(500).json({ message: "Server error" });
   }
 });
+// GET /summary — spending vs budget per category for the current period, with rollover
 router.get("/summary", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -430,6 +437,7 @@ router.get("/summary", async (req: Request, res: Response) => {
   }
 });
 
+// GET /payday-plan — allocate a paycheck across budget envelopes after savings and debt
 router.get("/payday-plan", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -503,7 +511,7 @@ router.get("/payday-plan", async (req: Request, res: Response) => {
   }
 });
 
-// Get all budgets for the logged-in user
+// GET / — list all budgets for the logged-in user
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -515,7 +523,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get single budget
+// GET /:id — fetch a single budget by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -532,7 +540,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Get budget with spending
+// GET /:id/spending — return a budget with total spent, remaining, and percent used
 router.get("/:id/spending", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -566,7 +574,7 @@ router.get("/:id/spending", async (req: Request, res: Response) => {
   }
 });
 
-// Create new budget
+// POST / — create a new budget with category, amount, period, and rollover settings
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -599,7 +607,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// Update budget
+// PUT /:id — update budget fields and re-resolve major category metadata
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -636,7 +644,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Delete budget
+// DELETE /:id — remove a budget by ID
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

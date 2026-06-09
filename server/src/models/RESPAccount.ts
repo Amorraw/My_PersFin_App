@@ -1,3 +1,4 @@
+// Mongoose schema for RESP plans with beneficiary list and CESG-tracked contributions
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IRESPAccount extends Document {

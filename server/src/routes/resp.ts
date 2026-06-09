@@ -1,3 +1,5 @@
+// RESP routes: CRUD for education savings plans with per-beneficiary CESG room tracking
+
 import { Router, Request, Response } from "express";
 import { RESP, IRESP, IRESPContribution } from "../models/RESP";
 import { requireAuth } from "../middleware/requireLogin";
@@ -52,7 +54,7 @@ function beneficiarySummary(beneficiaryName: string, contributions: IRESPContrib
   };
 }
 
-// GET /api/resp
+// GET / — list all RESP plans for the user
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -64,7 +66,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/resp/summary
+// GET /summary — aggregate RESP totals and CESG room per beneficiary across all plans
 router.get("/summary", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -95,7 +97,7 @@ router.get("/summary", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/resp
+// POST / — create a new RESP plan with beneficiaries
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -122,7 +124,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/resp/:id
+// PUT /:id — update RESP plan details
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -141,7 +143,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/resp/:id
+// DELETE /:id — remove a RESP plan by ID
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -154,7 +156,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/resp/:id/contributions
+// POST /:id/contributions — add a contribution with CESG amount for a named beneficiary
 router.post("/:id/contributions", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -182,7 +184,7 @@ router.post("/:id/contributions", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/resp/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a specific contribution from a RESP plan
 router.delete("/:id/contributions/:cid", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

@@ -1,11 +1,9 @@
+// Insurance planning calculators for life (DIME), disability, and dental/CDCP coverage
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { api } from "../api";
 import "./InsurancePlanning.css";
-
-// ── shared helpers ──────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+import { fmtCAD as fmt } from "../utils/formatters";
 
 const PROVINCES = [
   ["AB","Alberta"],["BC","British Columbia"],["MB","Manitoba"],["NB","New Brunswick"],
@@ -46,6 +44,7 @@ interface DentalResult {
 }
 
 // ── component ───────────────────────────────────────────────────────────────
+// Renders life, disability, and dental insurance calculators in tabbed layout
 export default function InsurancePlanning() {
   const { user } = useAuth();
   const [tab, setTab] = useState<"life" | "disability" | "health">("life");

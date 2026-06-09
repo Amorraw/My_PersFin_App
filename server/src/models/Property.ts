@@ -1,3 +1,4 @@
+// Mongoose schema for real estate properties with valuation, equity, and mortgage linkage
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProperty extends Document {

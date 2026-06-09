@@ -1,3 +1,4 @@
+// Year-end financial checklist covering tax, insurance, investments, and estate tasks
 import { useState } from "react";
 import "./AnnualReview.css";
 
@@ -52,6 +53,7 @@ const CATEGORIES = [...new Set(CHECKLIST.map((c) => c.category))];
 const PRIORITY_COLORS = { high: "#dc2626", medium: "#d97706", low: "#6b7280" };
 const PRIORITY_BG = { high: "#fef2f2", medium: "#fffbeb", low: "#f9fafb" };
 
+// Renders filterable checklist with priority badges and completion progress bar
 export default function AnnualReview() {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [filterCat, setFilterCat] = useState("all");

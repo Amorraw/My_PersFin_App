@@ -1,9 +1,6 @@
+// Canadian tax planning: RRSP/TFSA room, capital gains, marginal rates, withdrawal sequencing
 import { ITaxAccount } from "../models/TaxAccount";
 import { IInvestment } from "../models/Investment";
-
-/**
- * Canadian Tax Planning Utilities for Personal Finance
- */
 
 // 2024 Canadian tax limits
 export const TAX_LIMITS = {
@@ -17,10 +14,9 @@ export const TAX_LIMITS = {
   DIVIDEND_TAX_CREDIT: 0.38, // Approximate for Canadian dividends
 };
 
-/**
- * Calculate RRSP contribution room
- * Formula: (18% of prior year income) + unused room from previous years - overcontributions
- */
+// ── RRSP ─────────────────────────────────────────────────────────────────────
+
+// Calculate remaining RRSP room: 18% of prior income + unused room − contributions
 export function calculateRRSPRoom(
   priorYearIncome: number,
   currentYearContributions: number,
@@ -55,14 +51,9 @@ export interface TFSARoomYear {
   eligible: boolean; // true when person is 18+ in that year
 }
 
-/**
- * Calculate the full TFSA lifetime room schedule for a given birth year.
- * Room accumulates starting the year the person turns 18 (or 2009, whichever is later).
- * Withdrawals re-add room the following calendar year.
- *
- * @param birthYear     The person's year of birth
- * @param asOfYear      Calculate room up to and including this year (defaults to current year)
- */
+// ── TFSA ─────────────────────────────────────────────────────────────────────
+
+// Build year-by-year TFSA room schedule from birth year to asOfYear
 export function calculateTFSALifetimeRoomSchedule(
   birthYear: number,
   asOfYear: number = new Date().getFullYear()
@@ -80,11 +71,7 @@ export function calculateTFSALifetimeRoomSchedule(
   return schedule;
 }
 
-/**
- * Calculate TFSA contribution room
- * Each Canadian gets the annual limit for each year they are 18+.
- * Room carries forward indefinitely; withdrawals re-add the following year.
- */
+// Quick TFSA room check given pre-computed lifetime room and current-year activity
 export function calculateTFSARoom(
   lifetimeUnusedRoom: number,
   currentYearContributions: number,
@@ -94,10 +81,7 @@ export function calculateTFSARoom(
   return Math.max(0, totalAvailableRoom - currentYearContributions);
 }
 
-/**
- * Calculate remaining TFSA room given birth year, total contributions, and total withdrawals.
- * Withdrawals from prior years add back as room; current-year withdrawals add back next year.
- */
+// Full TFSA room calculation including over-contribution penalty from birth year
 export function calculateTFSARoomFromBirthYear(
   birthYear: number,
   totalContributionsEver: number,
@@ -128,10 +112,9 @@ export function calculateTFSARoomFromBirthYear(
   };
 }
 
-/**
- * Identify tax-loss harvesting opportunities
- * Look for unrealized losses in non-registered accounts
- */
+// ── Investments & Capital Gains ──────────────────────────────────────────────
+
+// Return non-registered holdings with unrealized losses > $50 eligible for harvesting
 export function identifyTaxLossHarvestingOpportunities(
   investments: IInvestment[],
   accountType: string
@@ -145,10 +128,7 @@ export function identifyTaxLossHarvestingOpportunities(
   );
 }
 
-/**
- * Calculate tax implications of RRSP contribution
- * Shows tax savings based on marginal tax rate
- */
+// Calculate immediate tax savings and estimated future withdrawal tax for an RRSP contribution
 export interface RRSPContributionTaxSavings {
   contribution: number;
   marginalTaxRate: number; // 20%, 30%, 40%, 50%+
@@ -157,6 +137,7 @@ export interface RRSPContributionTaxSavings {
   futureWithdrawalTax: number; // Estimated tax on withdrawal
 }
 
+// Compute tax refund now and projected tax cost at withdrawal
 export function calculateRRSPTaxSavings(
   contributionAmount: number,
   marginalTaxRate: number,
@@ -174,6 +155,8 @@ export function calculateRRSPTaxSavings(
     futureWithdrawalTax,
   };
 }
+
+// ── Marginal Tax Rates ───────────────────────────────────────────────────────
 
 // 2024 federal tax brackets (indexed annually)
 const FEDERAL_BRACKETS_2024 = [
@@ -302,6 +285,7 @@ export interface MarginalTaxRateResult {
   provincialBracket: string;
 }
 
+// Look up federal and provincial bracket rates for income and province
 export function getMarginalTaxRateDetailed(
   income: number,
   province: string = "ON"
@@ -327,9 +311,7 @@ export function getMarginalTaxRateDetailed(
   };
 }
 
-/**
- * Get combined marginal tax rate for a given income and province (2024).
- */
+// Return combined federal + provincial marginal rate as a single percentage
 export function getMarginalTaxRate(
   income: number,
   province: string = "ON"
@@ -337,15 +319,7 @@ export function getMarginalTaxRate(
   return getMarginalTaxRateDetailed(income, province).combinedRate;
 }
 
-/**
- * Calculate capital gains tax on investment using the tiered 2024 inclusion rates.
- * - First $250,000 of annual gains: 50% inclusion
- * - Gains above $250,000: 2/3 inclusion
- *
- * @param unrealizedGain  The gain being calculated now
- * @param marginalTaxRate Combined federal + provincial marginal rate (%)
- * @param priorGainsThisYear  Capital gains already realized this calendar year (default 0)
- */
+// Apply tiered 2024 inclusion rates: 50% on first $250K of gains, 2/3 above
 export interface CapitalGainsTax {
   unrealizedGain: number;
   priorGainsThisYear: number;
@@ -357,6 +331,7 @@ export interface CapitalGainsTax {
   breakdown: string;
 }
 
+// Split gain across low/high inclusion buckets accounting for prior gains this year
 export function calculateCapitalGainsTax(
   unrealizedGain: number,
   marginalTaxRate: number,
@@ -392,10 +367,9 @@ export function calculateCapitalGainsTax(
   };
 }
 
-/**
- * Recommend dividend account optimization
- * Dividends have better tax treatment in non-registered accounts
- */
+// ── Account Optimization ─────────────────────────────────────────────────────
+
+// Suitability score and recommendation for holding dividends in each account type
 export interface DividendOptimization {
   accountType: string;
   suitability: string;
@@ -403,6 +377,7 @@ export interface DividendOptimization {
   recommendation: string;
 }
 
+// Return pre-built tax-efficiency guidance for TFSA, RRSP, or non-registered accounts
 export function optimizeDividendAccounts(
   taxAccountType: string
 ): DividendOptimization {
@@ -433,10 +408,7 @@ export function optimizeDividendAccounts(
   return scenarios[taxAccountType] || scenarios["non-registered"];
 }
 
-/**
- * Spousal RRSP recommendation
- * Helps with income splitting for retired couples
- */
+// Recommend spousal RRSP contribution to equalise retirement income between partners
 export interface SpousalRRSPRecommendation {
   highEarnerIncome: number;
   lowEarnerIncome: number;
@@ -445,6 +417,7 @@ export interface SpousalRRSPRecommendation {
   futureIncomeSplitting: string;
 }
 
+// Size spousal RRSP contribution to close the income gap and quantify tax savings
 export function recommendSpousalRRSP(
   highEarnerIncome: number,
   lowEarnerIncome: number,
@@ -470,10 +443,9 @@ export function recommendSpousalRRSP(
   };
 }
 
-/**
- * Calculate optimal withdrawal sequence to minimize taxes
- * Withdrawal order: Non-reg -> TFSA -> RRSP (in retirement)
- */
+// ── Retirement Withdrawal ────────────────────────────────────────────────────
+
+// Sequence withdrawals to minimise tax: non-registered first, then TFSA, then RRSP
 export interface OptimalWithdrawalSequence {
   amount: number;
   withdrawalOrder: string[];
@@ -481,6 +453,7 @@ export interface OptimalWithdrawalSequence {
   estimatedTax: number;
 }
 
+// Draw from each account in the lowest-to-highest tax cost order
 export function calculateOptimalWithdrawalSequence(
   neededAmount: number,
   nonRegisteredBalance: number,

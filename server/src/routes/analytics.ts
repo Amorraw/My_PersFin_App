@@ -1,3 +1,5 @@
+// Analytics routes: spending breakdowns, trends, budget comparisons, and dashboard KPIs
+
 import { Router, Request, Response } from "express";
 import { Transaction } from "../models/Transaction";
 import { Budget } from "../models/Budget";
@@ -19,7 +21,7 @@ const LIABILITY_TYPES = new Set([
   'auto-loan', 'personal-loan', 'student-loan',
 ]);
 
-// Get spending by category
+// GET /spending-by-category — group expense totals by category for a date range
 router.get("/spending-by-category", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -62,7 +64,7 @@ router.get("/spending-by-category", async (req: Request, res: Response) => {
   }
 });
 
-// Get spending trends over time
+// GET /spending-trends — monthly income, expenses, and net savings for the last N months
 router.get("/spending-trends", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -108,7 +110,7 @@ router.get("/spending-trends", async (req: Request, res: Response) => {
   }
 });
 
-// Get budget vs actual spending
+// GET /budget-comparison — actual spending vs budget amount per category this month
 router.get("/budget-comparison", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -161,7 +163,7 @@ router.get("/budget-comparison", async (req: Request, res: Response) => {
   }
 });
 
-// Get financial overview/dashboard
+// GET /overview — high-level totals: balance, debt, net worth, monthly income/expenses, savings rate
 router.get("/overview", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -219,7 +221,7 @@ router.get("/overview", async (req: Request, res: Response) => {
   }
 });
 
-// Get excess spending alerts
+// GET /excess-spending — return over-budget categories and near-limit (>80%) warnings
 router.get("/excess-spending", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -279,7 +281,7 @@ router.get("/excess-spending", async (req: Request, res: Response) => {
   }
 });
 
-// Get category suggestions based on transaction description
+// POST /categorize-suggestion — infer a category from a transaction description string
 router.post("/categorize-suggestion", async (req: Request, res: Response) => {
   try {
     const { description } = req.body;
@@ -298,9 +300,7 @@ router.post("/categorize-suggestion", async (req: Request, res: Response) => {
   }
 });
 
-// ── 1. Cash-flow history ─────────────────────────────────────────────────────
-// Returns monthly income / expenses / net for the last N months.
-// Shape: [{ month: "YYYY-MM", income, expenses, net }]
+// GET /cash-flow-history — monthly income / expenses / net for the last N months (max 36)
 router.get("/cash-flow-history", async (req: Request, res: Response) => {
   try {
     const userId  = (req.user as any).id;
@@ -337,9 +337,6 @@ router.get("/cash-flow-history", async (req: Request, res: Response) => {
   }
 });
 
-// ── 2. Debt summary ──────────────────────────────────────────────────────────
-// Returns debts grouped by type + months-to-payoff projection per debt.
-// Shape: { byType, total, avgRate, projections }
 const DEBT_COLORS: Record<string, string> = {
   "mortgage":      "#3B82F6",
   "credit-card":   "#EF4444",
@@ -358,6 +355,7 @@ function monthsToPayoff(balance: number, annualRate: number, monthlyPayment: num
   return Math.ceil(-Math.log(1 - (r * balance) / monthlyPayment) / Math.log(1 + r));
 }
 
+// GET /debt-summary — debts by type with balances, average rate, and payoff projections
 router.get("/debt-summary", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -407,9 +405,6 @@ router.get("/debt-summary", async (req: Request, res: Response) => {
   }
 });
 
-// ── 3. Investment allocation ─────────────────────────────────────────────────
-// Groups asset accounts into financial categories with balances.
-// Shape: [{ name, value, color }]
 const ASSET_GROUPS: Record<string, { label: string; color: string }> = {
   "chequing":   { label: "Cash",        color: "#6EE7B7" },
   "checking":   { label: "Cash",        color: "#6EE7B7" },
@@ -420,6 +415,7 @@ const ASSET_GROUPS: Record<string, { label: string; color: string }> = {
   "investment": { label: "Investments", color: "#3B82F6" },
   "other":      { label: "Other",       color: "#9CA3AF" },
 };
+// GET /investment-allocation — group asset account balances by financial category (Cash, TFSA, etc.)
 router.get("/investment-allocation", async (req: Request, res: Response) => {
   try {
     const userId   = (req.user as any).id;
@@ -445,9 +441,7 @@ router.get("/investment-allocation", async (req: Request, res: Response) => {
   }
 });
 
-// ── 4. Goals progress ────────────────────────────────────────────────────────
-// Returns all active goals with progress % and days remaining.
-// Shape: [{ name, category, target, current, pct, daysLeft, monthlyNeeded }]
+// GET /goals-progress — active goals with progress %, days remaining, and monthly amount needed
 router.get("/goals-progress", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -480,11 +474,7 @@ router.get("/goals-progress", async (req: Request, res: Response) => {
   }
 });
 
-// ── 5. Financial snapshot ────────────────────────────────────────────────────
-// Comprehensive KPIs for the dashboard hero section.
-// Shape: { netWorth, totalAssets, totalLiabilities, monthlyIncome, monthlyExpenses,
-//          monthlyCashFlow, savingsRate, debtRatio, emergencyFundMonths,
-//          netWorthTrend, totalDebt, activeGoals, goalsProgress }
+// GET /financial-snapshot — comprehensive dashboard KPIs including emergency fund months and net worth trend
 router.get("/financial-snapshot", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

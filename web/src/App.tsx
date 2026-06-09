@@ -1,3 +1,4 @@
+// Root app shell: providers, collapsible sidebar nav, and all page routes
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
@@ -50,6 +51,8 @@ import Header from "./components/Header";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./App.css";
 
+// ── Navigation structure ──────────────────────────────
+// Grouped sidebar links — order here matches the rendered sidebar
 const NAV_GROUPS = [
   {
     label: "Overview",
@@ -146,6 +149,7 @@ const NAV_GROUPS = [
   },
 ];
 
+// ── Sidebar collapse helpers ──────────────────────────
 /** Returns the group label that owns the given pathname, or null. */
 function activeGroupFor(pathname: string): string | null {
   return NAV_GROUPS.find(g =>
@@ -165,6 +169,8 @@ function buildCollapsed(pathname: string): Record<string, boolean> {
   return map;
 }
 
+// ── Layout ────────────────────────────────────────────
+// Renders authenticated shell: sidebar, header, and routed content area
 function Layout() {
   const { user } = useAuth();
   const location = useLocation();
@@ -310,6 +316,7 @@ function Layout() {
   );
 }
 
+// Wraps the app in all context providers and the router
 function App() {
   return (
     <BrowserRouter>

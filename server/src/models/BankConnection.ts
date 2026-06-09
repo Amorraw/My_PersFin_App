@@ -1,3 +1,4 @@
+// Mongoose schema for Plaid bank connections: linked institution, accounts, and sync state
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IPlaidAccount {

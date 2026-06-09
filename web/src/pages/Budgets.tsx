@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿// Budget manager with rollover logic, payday planner, and category summaries
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Budget, CategoryMajor } from "../types";
 import { CATEGORY_CATALOG } from "../data/categoryCatalog";
@@ -69,6 +70,7 @@ function toMoney(value: string): number {
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) / 100 : 0;
 }
 
+// Converts a budget amount between biweekly and monthly cadences for display parity
 function normalizeAmountToPeriod(rawAmount: number, amountCadence: AmountCadence, period: BudgetCycle): number {
   if (amountCadence === period) return rawAmount;
   const converted = amountCadence === "biweekly" ? rawAmount * BIWEEKLY_PER_MONTH : rawAmount / BIWEEKLY_PER_MONTH;
@@ -85,6 +87,7 @@ function formatSignedMoney(value: number): string {
   return `${sign}${fmtMoney(Math.abs(value))}`;
 }
 
+// Renders budget cards, rollover status, and payday envelope planner
 export default function Budgets() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [summary, setSummary] = useState<BudgetSummary | null>(null);

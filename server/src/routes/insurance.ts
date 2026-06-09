@@ -1,3 +1,5 @@
+// Insurance routes: life insurance needs (DIME), disability gap analysis, and dental eligibility
+
 import { Router } from "express";
 import { requireLogin } from "../middleware/requireLogin";
 
@@ -140,7 +142,7 @@ const PROVINCIAL_GAPS: Record<string, Record<string, string>> = {
   },
 };
 
-// ── POST /insurance/life-needs — DIME method ──
+// POST /life-needs — calculate coverage gap using DIME (debts, income, mortgage, education) method
 router.post("/life-needs", (req, res, next) => {
   try {
     const {
@@ -216,7 +218,7 @@ router.post("/life-needs", (req, res, next) => {
   }
 });
 
-// ── POST /insurance/disability-gap ──
+// POST /disability-gap — compute monthly LTD shortfall after EI, employer plan, and CPP disability
 router.post("/disability-gap", (req, res, next) => {
   try {
     const {
@@ -288,7 +290,7 @@ router.post("/disability-gap", (req, res, next) => {
   }
 });
 
-// ── POST /insurance/dental-eligibility — CDCP + provincial gaps ──
+// POST /dental-eligibility — check CDCP eligibility and provincial dental coverage gaps
 router.post("/dental-eligibility", (req, res, next) => {
   try {
     const {
@@ -349,7 +351,7 @@ router.post("/dental-eligibility", (req, res, next) => {
   }
 });
 
-// ── GET /insurance/provincial-coverage ──
+// GET /provincial-coverage — return provincial supplementary health coverage gaps for all provinces
 router.get("/provincial-coverage", (_req, res) => {
   res.json({ coverage: PROVINCIAL_GAPS });
 });

@@ -1,3 +1,4 @@
+// Tax planning hub for RRSP/TFSA room calculations and marginal rate waterfall chart
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
@@ -47,6 +48,7 @@ interface TFSARoom {
   recommendation: string;
 }
 
+// Renders RRSP/TFSA account list, room details, and marginal-rate waterfall
 export function TaxPlanning() {
   const [taxAccounts, setTaxAccounts] = useState<TaxAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<TaxAccount | null>(null);

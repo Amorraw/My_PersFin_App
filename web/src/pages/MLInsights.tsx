@@ -1,3 +1,4 @@
+// ML Insights page: spending forecast, anomaly detection, and budget suggestions via Python service
 import { useState } from "react";
 import { api } from "../api";
 import {
@@ -6,9 +7,7 @@ import {
 } from "recharts";
 import './MLInsights.css';
 import { fmtCADShort } from "../components/charts";
-
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+import { fmtCAD as CAD } from "../utils/formatters";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +58,7 @@ const FORECAST_AHEAD_OPTIONS: Record<AnalysisRange, number[]> = {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+// Renders three independent ML tool sections with run buttons and result tables
 export default function MLInsights() {
   const [analysisRange, setAnalysisRange] = useState<AnalysisRange>("1y");
   const [forecastMonths, setForecastMonths] = useState(3);
@@ -78,7 +78,7 @@ export default function MLInsights() {
 
   const changeAnalysisRange = (next: AnalysisRange) => {
     setAnalysisRange(next);
-    // Reset to a forecast horizon that's valid for the newly selected range (3 months ahead is always available)
+    // Clamp forecastMonths to a horizon available for the new range (3 months always valid)
     if (!FORECAST_AHEAD_OPTIONS[next].includes(forecastMonths)) setForecastMonths(3);
   };
 
@@ -139,6 +139,7 @@ export default function MLInsights() {
   // "All Transactions" is a synthetic category — its historical/forecast amounts
   // are the per-month sum across every real category, and its trend is derived
   // from comparing the combined last-historical vs. last-forecast totals.
+  // Aggregates per-category forecasts into a synthetic "All Transactions" total series
   const getForecastEntry = (cat: string): ForecastData | null => {
     if (!forecastResult) return null;
     if (cat !== ALL_TXN_CAT) return forecastResult.forecasts[cat] ?? null;
@@ -189,6 +190,7 @@ export default function MLInsights() {
     return { historical, forecast, trend };
   };
 
+  // Merges historical and forecast points into one flat array for Recharts
   const buildChartData = (cat: string) => {
     const entry = getForecastEntry(cat);
     if (!entry) return [];

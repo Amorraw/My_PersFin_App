@@ -1,3 +1,5 @@
+// Account routes: CRUD for user financial accounts with auto-balance recalculation
+
 import { Router, Request, Response } from "express";
 import { Account } from "../models/Account";
 import { Transaction } from "../models/Transaction";
@@ -45,7 +47,7 @@ async function getRecalculatedAccountBalance(userId: string, accountId: string, 
 // All routes require authentication
 router.use(requireAuth);
 
-// Get all accounts for the logged-in user
+// GET / — list all accounts; auto-corrects each balance from transaction history
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -72,7 +74,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get single account
+// GET /:id — fetch a single account by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -89,7 +91,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Create new account
+// POST / — create a new account for the logged-in user
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -115,7 +117,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// Update account
+// PUT /:id — update account fields (name, type, balance, etc.)
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -138,7 +140,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Delete account
+// DELETE /:id — remove an account by ID
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -155,7 +157,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Recalculate all credit card balances from transactions
+// POST /recalculate-credit-card-balances — recompute all credit card balances from transactions
 router.post("/recalculate-credit-card-balances", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

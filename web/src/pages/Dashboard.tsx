@@ -1,3 +1,4 @@
+// Main dashboard: accounts, KPI cards, charts, health gauges, and smart analysis panel
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import type { Account } from "../types";
@@ -12,6 +13,7 @@ import {
   COLORS as C,
 } from "../components/charts";
 import './Dashboard.css';
+import { LIABILITY_TYPES, ACCOUNT_TYPE_LABELS } from "../utils/constants";
 
 interface FinancialSnapshot {
   netWorth: number;
@@ -34,19 +36,6 @@ interface AllocSlice    { name: string; value: number; color: string; }
 interface SpendItem     { category: string; amount: number; }
 interface BudgetRow     { category: string; budgeted: number; spent: number; isOverBudget: boolean; percentUsed: number; }
 
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  chequing: "Chequing", checking: "Checking", savings: "Savings",
-  "credit-card": "Credit Card", "line-of-credit": "LOC",
-  tfsa: "TFSA", rrsp: "RRSP", gic: "GIC",
-  "student-loan": "Student Loan", mortgage: "Mortgage",
-  "auto-loan": "Auto Loan", "personal-loan": "Personal Loan",
-  investment: "Investment", other: "Other",
-};
-
-const LIABILITY_TYPES = new Set([
-  "credit-card", "line-of-credit", "student-loan",
-  "mortgage", "auto-loan", "personal-loan",
-]);
 
 type StepKey = "netWorth" | "debts" | "recurring" | "forecast" | "anomalies" | "budgets";
 type StepStatus = "idle" | "running" | "done" | "error";
@@ -75,6 +64,7 @@ const STEP_COLORS: Record<StepStatus, string> = {
   error:   "#EF4444",
 };
 
+// Loads all analytics in parallel then renders accounts table and chart sections
 export default function Dashboard() {
   const [accounts,         setAccounts]         = useState<Account[]>([]);
   const [snapshot,         setSnapshot]         = useState<FinancialSnapshot | null>(null);
@@ -141,6 +131,7 @@ export default function Dashboard() {
   const patchStep = (key: StepKey, status: StepStatus, msg: string) =>
     setAnalysisResults(prev => ({ ...prev, [key]: { status, msg } }));
 
+  // Fires all six ML/analysis endpoints in parallel and updates step status live
   const runAllAnalysis = async () => {
     setAnalysisOpen(true);
     setAnalysisRunning(true);
@@ -323,6 +314,7 @@ export default function Dashboard() {
     setShowAccountForm(false);
   };
 
+  // Shows negative balance in red for liabilities, positive in green for assets
   const renderBalance = (account: Account) =>
     LIABILITY_TYPES.has(account.type)
       ? <span style={{ color: "#dc2626", fontWeight: 600 }}>−{fmtCAD(Math.abs(account.balance))}</span>
