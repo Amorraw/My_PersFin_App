@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/requireLogin";
 const router = Router();
 router.use(requireAuth);
 
-const ML_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ML_URL = (process.env.ML_SERVICE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 async function proxyML(endpoint: string, body: object): Promise<any> {
   let raw: globalThis.Response;

@@ -1,5 +1,5 @@
 // Thin fetch wrapper that attaches credentials, parses JSON, and throws on non-2xx
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export async function api(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_URL}${path}`, {
