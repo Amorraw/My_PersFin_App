@@ -1,3 +1,4 @@
+// Flexible grouped or stacked bar chart supporting horizontal and vertical layouts
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, LabelList,
@@ -25,6 +26,7 @@ interface Props {
   stacked?:     boolean;
 }
 
+// Swaps axis config based on layout prop; colorByRow overrides bar fill per data row
 export default function ComparisonBarChart({
   data,
   bars,

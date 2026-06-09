@@ -1,3 +1,4 @@
+// TFSA account tracker managing contributions, withdrawals, and annual room usage
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
 import { fmtMoney } from "../components/charts";
@@ -31,7 +32,6 @@ interface TFSASummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) => fmtMoney(n);
 const pct = (n: number, d: number) => (d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0);
 const TODAY = new Date().toISOString().split("T")[0];
 const CY = new Date().getFullYear();
@@ -52,6 +52,7 @@ const TFSA_RULES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// Renders TFSA account cards with contribution/withdrawal modals and room summary
 export default function TFSATracker() {
   const [accounts, setAccounts] = useState<TFSAAccount[]>([]);
   const [summary,  setSummary]  = useState<TFSASummary | null>(null);
@@ -224,12 +225,12 @@ export default function TFSATracker() {
       {summary && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
           {[
-            { label: "Total Balance",          value: CAD(summary.totalBalance),          color: "#0ea5e9" },
-            { label: "Total Contributed",      value: CAD(summary.totalContributed),      color: "#6366f1" },
-            { label: "Total Withdrawn",        value: CAD(summary.totalWithdrawn),        color: "#6b7280" },
-            { label: `${CY} Limit`,            value: CAD(summary.thisYearLimit),         color: "#0369a1" },
-            { label: `${CY} Available`,        value: CAD(summary.thisYearAvailable),     color: "#0369a1", sub: summary.priorYearWithdrawals > 0 ? `+${CAD(summary.priorYearWithdrawals)} from ${CY-1}` : undefined },
-            { label: `${CY} Remaining Room`,   value: CAD(summary.thisYearRemaining),     color: summary.thisYearRemaining > 0 ? "#059669" : "#9ca3af" },
+            { label: "Total Balance",          value: fmtMoney(summary.totalBalance),          color: "#0ea5e9" },
+            { label: "Total Contributed",      value: fmtMoney(summary.totalContributed),      color: "#6366f1" },
+            { label: "Total Withdrawn",        value: fmtMoney(summary.totalWithdrawn),        color: "#6b7280" },
+            { label: `${CY} Limit`,            value: fmtMoney(summary.thisYearLimit),         color: "#0369a1" },
+            { label: `${CY} Available`,        value: fmtMoney(summary.thisYearAvailable),     color: "#0369a1", sub: summary.priorYearWithdrawals > 0 ? `+${fmtMoney(summary.priorYearWithdrawals)} from ${CY-1}` : undefined },
+            { label: `${CY} Remaining Room`,   value: fmtMoney(summary.thisYearRemaining),     color: summary.thisYearRemaining > 0 ? "#059669" : "#9ca3af" },
           ].map(c => (
             <div key={c.label} style={{ ...card, padding: "14px 16px" }}>
               <div style={{ fontSize: "0.72rem", color: "var(--text-light)", marginBottom: 4 }}>{c.label}</div>
@@ -245,7 +246,7 @@ export default function TFSATracker() {
         <div style={{ ...card, padding: "16px 20px", marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: 6 }}>
             <span><strong>{CY} contribution room used</strong></span>
-            <span style={{ color: "var(--text-light)" }}>{CAD(summary.thisYearContributed)} / {CAD(summary.thisYearAvailable)}</span>
+            <span style={{ color: "var(--text-light)" }}>{fmtMoney(summary.thisYearContributed)} / {fmtMoney(summary.thisYearAvailable)}</span>
           </div>
           <div style={{ height: 12, background: "#e5e7eb", borderRadius: 6, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${roomPct}%`, background: roomPct >= 100 ? "#ef4444" : roomPct >= 90 ? "#f59e0b" : "#0ea5e9", borderRadius: 6, transition: "width 0.4s" }} />
@@ -253,7 +254,7 @@ export default function TFSATracker() {
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-light)", marginTop: 4 }}>
             <span>{roomPct}% used</span>
             {summary.priorYearWithdrawals > 0 && (
-              <span style={{ color: "#059669" }}>Includes {CAD(summary.priorYearWithdrawals)} re-added from {CY-1} withdrawals</span>
+              <span style={{ color: "#059669" }}>Includes {fmtMoney(summary.priorYearWithdrawals)} re-added from {CY-1} withdrawals</span>
             )}
           </div>
         </div>
@@ -285,9 +286,9 @@ export default function TFSATracker() {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", minWidth: 120 }}>
-                    <div style={{ fontWeight: 700, color: "#0ea5e9", fontSize: "1.1rem" }}>{CAD(acct.balance)}</div>
+                    <div style={{ fontWeight: 700, color: "#0ea5e9", fontSize: "1.1rem" }}>{fmtMoney(acct.balance)}</div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
-                      In: {CAD(totalContrib)} · Out: {CAD(totalWithdraw)}
+                      In: {fmtMoney(totalContrib)} · Out: {fmtMoney(totalWithdraw)}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -362,7 +363,7 @@ export default function TFSATracker() {
           {cError && <ErrorBox msg={cError} />}
           {summary && summary.thisYearRemaining > 0 && (
             <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: "0.85rem", color: "#0369a1" }}>
-              {CAD(summary.thisYearRemaining)} room remaining for {CY}
+              {fmtMoney(summary.thisYearRemaining)} room remaining for {CY}
             </div>
           )}
           <FieldGroup>

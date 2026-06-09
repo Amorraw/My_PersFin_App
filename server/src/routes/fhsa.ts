@@ -1,3 +1,5 @@
+// FHSA routes: CRUD for First Home Savings Accounts with CRA contribution room tracking
+
 import { Router, Request, Response } from "express";
 import { FHSA, IFHSA } from "../models/FHSA";
 import { requireAuth } from "../middleware/requireLogin";
@@ -66,7 +68,7 @@ function computeRoomSummary(accounts: IFHSA[]) {
   };
 }
 
-// GET /api/fhsa
+// GET / — list all FHSA accounts for the user
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -78,7 +80,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/fhsa/summary
+// GET /summary — aggregate balances and CRA contribution room across all FHSA accounts
 router.get("/summary", async (req: Request, res: Response) => {
   try {
     const userId  = (req.user as any).id;
@@ -100,7 +102,7 @@ router.get("/summary", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/fhsa
+// POST / — create a new FHSA account (FHSA program started 2023)
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -129,7 +131,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/fhsa/:id
+// PUT /:id — update FHSA account details
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -148,7 +150,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/fhsa/:id
+// DELETE /:id — remove a FHSA account by ID
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -161,7 +163,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/fhsa/:id/contributions
+// POST /:id/contributions — record a contribution against this FHSA account
 router.post("/:id/contributions", async (req: Request, res: Response) => {
   try {
     const userId  = (req.user as any).id;
@@ -182,7 +184,7 @@ router.post("/:id/contributions", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/fhsa/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a specific contribution from a FHSA account
 router.delete("/:id/contributions/:cid", async (req: Request, res: Response) => {
   try {
     const userId  = (req.user as any).id;

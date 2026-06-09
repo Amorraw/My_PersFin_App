@@ -1,3 +1,4 @@
+// Net worth dashboard with historical snapshots and multi-rate growth projections
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 import { api } from '../api';
@@ -32,6 +33,7 @@ interface NetWorthBreakdown {
   };
 }
 
+// Renders net worth breakdown, history chart, and scenario projections
 export default function NetWorth() {
   useAuth();
   const [current, setCurrent] = useState<NetWorthBreakdown | null>(null);
@@ -69,6 +71,7 @@ export default function NetWorth() {
     }
   };
 
+  // Projects net worth at 3%, 6%, and 9% asset growth with 5% annual debt paydown
   const scenarios = useMemo(() => {
     if (!current) return [];
     const thisYear = new Date().getFullYear();

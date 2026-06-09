@@ -1,5 +1,7 @@
+// RESP plan tracker with per-beneficiary CESG room and contribution limit enforcement
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
+import { fmtMoney as CAD } from "../utils/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,12 +50,11 @@ interface RESPSummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
-
 const CESG_ELIGIBLE_PER_YEAR = 2_500;
 const MAX_CESG_PER_YEAR      = 500;
 const MAX_CESG_LIFETIME      = 7_200;
 
+// Calculates expected CESG (20% on first $2,500) capped at lifetime $7,200 maximum
 function suggestedCesg(amount: number, alreadyReceivedLifetime: number): number {
   const eligible = Math.min(amount, CESG_ELIGIBLE_PER_YEAR);
   return Math.round(Math.min(eligible * 0.2, MAX_CESG_PER_YEAR, Math.max(0, MAX_CESG_LIFETIME - alreadyReceivedLifetime)) * 100) / 100;
@@ -74,6 +75,7 @@ const RULES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// Renders RESP plan cards with beneficiary CESG tracking and contribution modals
 export default function RESPTracker() {
   const [plans, setPlans]           = useState<RESPPlan[]>([]);
   const [summary, setSummary]       = useState<RESPSummary | null>(null);

@@ -1,3 +1,4 @@
+// CSV and PDF import wizard for Canadian bank statements with duplicate detection
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import type { Account } from "../types";
@@ -160,6 +161,7 @@ interface PdfPreview {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+// Renders CSV/PDF upload tabs, column mapper, and transaction review table
 export default function Import() {
   const [tab, setTab] = useState<Tab>("csv");
 

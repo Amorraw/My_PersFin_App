@@ -1,3 +1,4 @@
+// Background job scheduler: daily alerts and first-of-month net-worth snapshot / budget rollover
 import mongoose from "mongoose";
 import { runAlertEngine } from "./alertEngine";
 import { User } from "../models/User";
@@ -7,11 +8,13 @@ import { Budget } from "../models/Budget";
 import { Transaction } from "../models/Transaction";
 import Notification from "../models/Notification";
 
+// Fetch every user's ObjectId for fan-out to per-user jobs
 async function getAllUserIds(): Promise<mongoose.Types.ObjectId[]> {
   const users = await User.find({}, "_id").lean();
   return users.map((u: any) => u._id as mongoose.Types.ObjectId);
 }
 
+// Record one net-worth snapshot per user per month and notify them of the total
 async function takeMonthlyNetWorthSnapshot() {
   const userIds = await getAllUserIds();
   const now = new Date();
@@ -58,6 +61,7 @@ async function takeMonthlyNetWorthSnapshot() {
   }
 }
 
+// Notify users of unspent budget amounts eligible to carry into the new month
 async function rolloverMonthlyBudgets() {
   const userIds = await getAllUserIds();
   const now = new Date();
@@ -87,6 +91,7 @@ async function rolloverMonthlyBudgets() {
       const spent = Math.abs(result[0]?.total ?? 0);
       const remaining = (b.amount ?? 0) - spent;
 
+      // Only notify once per rollover event to avoid duplicate alerts
       if (remaining > 0 && (b.rolloverMode === "carry-unused" || b.rolloverMode === "carry-net")) {
         const alreadyNotified = await Notification.findOne({
           userId,
@@ -108,21 +113,25 @@ async function rolloverMonthlyBudgets() {
   }
 }
 
+// Fan out alert engine to all users in parallel, ignoring individual failures
 async function runDailyAlerts() {
   const userIds = await getAllUserIds();
   await Promise.allSettled(userIds.map((id) => runAlertEngine(id)));
 }
 
+// Run snapshot and budget rollover concurrently; surface failures independently
 async function runFirstOfMonthJobs() {
   await Promise.allSettled([takeMonthlyNetWorthSnapshot(), rolloverMonthlyBudgets()]);
 }
 
+// Wire up daily (24 h) and first-of-month (hourly check) intervals
 export function startScheduler() {
   runDailyAlerts().catch(console.error);
   setInterval(() => runDailyAlerts().catch(console.error), 24 * 60 * 60 * 1000);
 
   const checkFirstOfMonth = () => {
     const now = new Date();
+    // Only fire during the first two hours of the 1st to avoid duplicate runs
     if (now.getDate() === 1 && now.getHours() < 2) {
       runFirstOfMonthJobs().catch(console.error);
     }

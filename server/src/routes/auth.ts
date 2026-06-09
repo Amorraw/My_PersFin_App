@@ -1,3 +1,5 @@
+// Authentication routes: register, login, logout, profile, and password reset
+
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import passport from "passport";
@@ -7,6 +9,7 @@ import { sendPasswordResetEmail } from "../utils/email";
 
 const router = Router();
 
+// POST /register — create a new user account and auto-login
 router.post("/register", async (req, res, next) => {
   try {
     console.log("Register endpoint hit with body:", req.body);
@@ -47,6 +50,7 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
+// POST /login — authenticate with email/password via Passport local strategy
 router.post("/login", (req, res, next) => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) {
@@ -68,6 +72,7 @@ router.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
+// POST /logout — destroy the current session
 router.post("/logout", (req, res, next) => {
   req.logout(err => {
     if (err) return next(err);
@@ -75,6 +80,7 @@ router.post("/logout", (req, res, next) => {
   });
 });
 
+// GET /me — return the currently authenticated user's profile
 router.get("/me", (req, res) => {
   if (!req.user) return res.status(401).json({ user: null });
   const user = req.user as any;
@@ -90,6 +96,7 @@ router.get("/me", (req, res) => {
   });
 });
 
+// PUT /profile — update firstName, lastName, and/or province for the logged-in user
 router.put("/profile", async (req, res, next) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authenticated" });
@@ -125,6 +132,7 @@ router.put("/profile", async (req, res, next) => {
   }
 });
 
+// POST /forgot-password — send a one-hour password reset link to the user's email
 router.post("/forgot-password", async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -153,6 +161,7 @@ router.post("/forgot-password", async (req, res, next) => {
   }
 });
 
+// POST /reset-password — validate token and replace the user's password
 router.post("/reset-password", async (req, res, next) => {
   try {
     const { token, password } = req.body;

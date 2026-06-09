@@ -1,3 +1,4 @@
+// User profile settings — province selection drives all combined tax-rate calculations
 import { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import './Settings.css';
@@ -18,6 +19,7 @@ const PROVINCES = [
   { code: "YT", name: "Yukon" },
 ];
 
+// Renders name and province fields; province persists to auth context
 export default function Settings() {
   const { user, updateProfile } = useAuth();
   const [firstName, setFirstName] = useState(user?.firstName ?? "");

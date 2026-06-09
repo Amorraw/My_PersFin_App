@@ -1,6 +1,8 @@
+// Inflation tracker: shows Stats Canada CPI data and maps it against the user's budget
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { fmtMoney } from "../components/charts";
+import { fmtCAD as fmt, fmtPctSigned as fmtPct } from "../utils/formatters";
 import "./InflationTracker.css";
 
 interface CpiCategory {
@@ -37,10 +39,6 @@ const BUDGET_CATEGORIES = [
   { value: "other",      label: "Other" },
 ];
 
-const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
 let nextId = 1;
 const defaultRows: BudgetRow[] = [
   { id: nextId++, label: "Groceries",     monthlyAmount: "600",  budgetCategory: "groceries" },
@@ -51,6 +49,7 @@ const defaultRows: BudgetRow[] = [
   { id: nextId++, label: "Entertainment", monthlyAmount: "150",  budgetCategory: "recreation" },
 ];
 
+// Fetches CPI on mount, then enriches editable budget rows with per-category inflation rates
 export default function InflationTracker() {
   const [cpiData, setCpiData]     = useState<CpiData | null>(null);
   const [loadingCpi, setLoadingCpi] = useState(true);
@@ -70,6 +69,7 @@ export default function InflationTracker() {
   const updateRow = (id: number, field: keyof BudgetRow, val: string) =>
     setBudget((p) => p.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
 
+  // Join each budget row with its matching CPI category rate for the inflation-hit calculation
   const enrichedRows = budget.map((row) => {
     const cat = cpiData?.categories.find((c) => c.budgetCategory === row.budgetCategory);
     const cpiRate = cat?.yoy ?? cpiData?.categories[0]?.yoy ?? 2.7;
@@ -80,6 +80,7 @@ export default function InflationTracker() {
 
   const totalMonthly     = enrichedRows.reduce((s, r) => s + (Number(r.monthlyAmount) || 0), 0);
   const totalInflationHit = enrichedRows.reduce((s, r) => s + r.inflationImpactMonthly, 0);
+  // Spending-weighted average CPI rate across all budget rows
   const blendedCPI = totalMonthly > 0
     ? enrichedRows.reduce((s, r) => s + r.cpiRate * (Number(r.monthlyAmount) || 0), 0) / totalMonthly
     : 2.7;

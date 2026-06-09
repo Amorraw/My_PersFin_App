@@ -1,3 +1,4 @@
+// Loads environment variables and exports typed config constants for the app
 import dotenv from "dotenv";
 
 dotenv.config();

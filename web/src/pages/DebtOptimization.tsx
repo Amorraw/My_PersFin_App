@@ -1,3 +1,4 @@
+// Debt optimization page: strategy comparison, lump-sum optimizer, mortgage accelerator, and consolidation analysis
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { api } from "../api";
@@ -61,9 +62,6 @@ interface ConsolidationResultData {
   analysis:         { interestSavings: number; timeSavings: number; recommendation: string };
 }
 
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
 const TYPE_COLORS: Record<string, string> = {
   "credit-card":  "#fee2e2",
   "mortgage":     "#eff6ff",
@@ -73,6 +71,7 @@ const TYPE_COLORS: Record<string, string> = {
   "other":        "#f3f4f6",
 };
 
+// Guides user through: select debts → choose strategy → set budget → view payoff plan
 export default function DebtOptimization(): ReactElement {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [selectedDebts, setSelectedDebts] = useState<string[]>([]);
@@ -164,6 +163,7 @@ export default function DebtOptimization(): ReactElement {
     }
   };
 
+  // Imports only debts that haven't been imported yet and are still visible
   const importAll = async () => {
     if (!detected) return;
     const toImport = detected.filter((d) => !d.alreadyImported && !dismissed.has(d.accountId));
@@ -350,7 +350,7 @@ export default function DebtOptimization(): ReactElement {
 
                       {/* Balance */}
                       <td style={{ padding: "8px 10px", fontWeight: 700, color: "#dc2626", whiteSpace: "nowrap" }}>
-                        {CAD(d.balance)}
+                        {fmtMoney(d.balance)}
                       </td>
 
                       {/* Editable interest rate */}
@@ -373,7 +373,7 @@ export default function DebtOptimization(): ReactElement {
                       {/* Editable minimum payment */}
                       <td style={{ padding: "8px 10px" }}>
                         {d.alreadyImported ? (
-                          <span style={{ color: "var(--text-light)" }}>{CAD(d.defaultMinPayment)}</span>
+                          <span style={{ color: "var(--text-light)" }}>{fmtMoney(d.defaultMinPayment)}</span>
                         ) : (
                           <input
                             type="number"

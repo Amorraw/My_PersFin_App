@@ -1,3 +1,4 @@
+// Mongoose schema for point-in-time net worth snapshots: assets, liabilities, and breakdown
 import mongoose from 'mongoose';
 
 export interface INetWorthSnapshot extends mongoose.Document {

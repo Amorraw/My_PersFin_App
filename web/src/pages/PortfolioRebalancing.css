@@ -216,15 +216,6 @@
 }
 
 /* ── Tables ─────────────────────────────────── */
-.table-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 10px;
-  box-shadow: var(--shadow);
-}
-
 .table-card-header {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -312,12 +303,6 @@
   margin-left: 4px;
 }
 
-/* ── Error ──────────────────────────────────── */
-.error-msg {
-  color: var(--danger);
-  font-size: 0.75rem;
-  margin-top: 6px;
-}
 
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 768px) {

@@ -1,3 +1,4 @@
+// Express app entry point: middleware setup, route mounting, and server start
 import express from "express";
 import cors from "cors";
 import session from "express-session";
@@ -163,6 +164,7 @@ app.use((err: any, _req: any, res: any, _next: any) => {
   res.status(err.status || 500).json({ message: err.message });
 });
 
+// Connect to MongoDB then start listening and kick off background jobs
 mongoose.connect(MONGO_URI).then(() => {
   console.log("Mongo connected");
   app.listen(PORT, () => console.log(`API on http://localhost:${PORT}`));

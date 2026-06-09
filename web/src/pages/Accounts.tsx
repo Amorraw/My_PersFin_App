@@ -1,5 +1,8 @@
+// Accounts page: two-tab view for bank/everyday accounts and registered accounts (RRSP, TFSA, etc.)
 import React, { useState, useEffect, useMemo } from 'react';
 import './Accounts.css';
+import { fmtMoney } from "../utils/formatters";
+import { LIABILITY_TYPES } from "../utils/constants";
 
 // ── Canadian institutions ────────────────────────────────────────────────────
 
@@ -61,13 +64,12 @@ interface AccountTypeInfo {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) =>
-  Math.abs(n).toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+const CAD = (n: number) => fmtMoney(Math.abs(n));
 
-const LIABILITY_TYPES = new Set(['credit-card', 'line-of-credit', 'mortgage', 'auto-loan', 'personal-loan', 'student-loan']);
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+// Manages bank and registered account CRUD with institution grouping and net-position summary
 const Accounts: React.FC = () => {
   const [tab, setTab] = useState<'bank' | 'registered'>('bank');
 
@@ -158,7 +160,7 @@ const Accounts: React.FC = () => {
     });
   }, [tab]);
 
-  // Auto-suggest account name when institution or type changes (never during edit)
+  // Pre-fills account name from institution + type selection to reduce manual typing
   useEffect(() => {
     if (!editingAccount) {
       const inst = bankForm.institution === 'Other (specify)' ? bankForm.institutionCustom : bankForm.institution.split(' ')[0];
@@ -342,6 +344,7 @@ const Accounts: React.FC = () => {
 
   // ── Derived data ─────────────────────────────────────────────────────────────
 
+  // Groups accounts by institution for the banded card display; alphabetically sorted
   const accountsByInstitution = useMemo(() => {
     const map = new Map<string, BankAccount[]>();
     for (const acct of bankAccounts) {
@@ -352,6 +355,7 @@ const Accounts: React.FC = () => {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [bankAccounts]);
 
+  // Includes Debt model entries in liabilities so the net position matches the Debts page
   const bankTotals = useMemo(() => {
     let assets = 0, liabilities = 0;
     for (const acct of bankAccounts) {

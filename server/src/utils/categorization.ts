@@ -1,3 +1,4 @@
+// Rule-based transaction categorization using merchant/description keyword patterns
 import { CATEGORY_CATALOG } from "../data/categoryCatalog";
 
 const categoryRules: { [key: string]: RegExp[] } = {
@@ -42,6 +43,7 @@ const categoryRules: { [key: string]: RegExp[] } = {
 
 const allSubcategoryNames = new Set(CATEGORY_CATALOG.flatMap((major) => major.subcategories.map((sub) => sub.name.toLowerCase())));
 
+// Match description against regex rules; fall back to "Other Living Expenses"
 export function categorizeTransaction(description: string): string {
   if (!description) return "Other Living Expenses";
 
@@ -58,10 +60,12 @@ export function categorizeTransaction(description: string): string {
   return "Other Living Expenses";
 }
 
+// Thin alias used by the import flow to suggest a category from raw description text
 export function getSuggestedCategory(description: string): string {
   return categorizeTransaction(description);
 }
 
+// Return all subcategory names from the catalog, deduplicated and sorted alphabetically
 export function getAvailableCategories(): string[] {
   return Array.from(allSubcategoryNames)
     .map((name) => CATEGORY_CATALOG.flatMap((major) => major.subcategories).find((sub) => sub.name.toLowerCase() === name)?.name || name)

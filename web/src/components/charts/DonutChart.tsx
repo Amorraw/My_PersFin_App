@@ -1,3 +1,4 @@
+// Donut/pie chart with optional centre label, percentage labels, and legend
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { PALETTE, TOOLTIP_STYLE, categoryColor, fmtCAD, fmtPct } from "./ChartTheme";
 
@@ -19,6 +20,7 @@ interface Props {
   centerValue?:  string;
 }
 
+// Renders pie chart with percentage tooltips; overlays centre text via absolute positioning
 export default function DonutChart({
   data,
   height       = 220,
@@ -36,6 +38,7 @@ export default function DonutChart({
 
   const total = data.reduce((s, d) => s + d.value, 0);
 
+  // Suppress label on slices below 5% to avoid illegible text on tiny wedges
   const renderCustomLabel = ({
     cx, cy, midAngle, innerRadius, outerRadius, percent,
   }: any) => {

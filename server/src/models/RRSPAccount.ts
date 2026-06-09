@@ -1,3 +1,4 @@
+// Mongoose schema for RRSP accounts with contribution and withdrawal history sub-documents
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IRRSPAccount extends Document {

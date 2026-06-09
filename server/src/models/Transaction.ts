@@ -1,3 +1,4 @@
+// Mongoose schema for income, expense, and transfer transactions with category tagging
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITransaction extends Document {

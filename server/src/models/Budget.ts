@@ -1,3 +1,4 @@
+// Mongoose schema for category budgets with period cycle and rollover configuration
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBudget extends Document {

@@ -19,15 +19,6 @@
   max-width: 680px;
 }
 
-/* ── Section card ──────────────────────────── */
-.section-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
 .section-card h2 {
   margin: 0 0 10px 0;
   font-size: 0.82rem;
@@ -281,12 +272,6 @@
   margin-top: 3px;
 }
 
-/* ── Error / next-year info ────────────────── */
-.error-msg {
-  color: var(--danger);
-  font-size: 0.75rem;
-  margin-top: 6px;
-}
 
 .next-year-banner {
   background: #eff6ff;

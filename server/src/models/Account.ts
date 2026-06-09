@@ -1,3 +1,4 @@
+// Mongoose schema for financial accounts: bank, investment, credit, and debt accounts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IAccount extends Document {

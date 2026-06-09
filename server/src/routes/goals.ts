@@ -1,3 +1,5 @@
+// Goal routes: CRUD for savings goals with progress tracking and monthly contribution calc
+
 import { Router } from 'express';
 import { Goal } from '../models/Goal';
 import { requireLogin } from '../middleware/requireLogin';
@@ -5,10 +7,7 @@ import { requireLogin } from '../middleware/requireLogin';
 const router = Router();
 router.use(requireLogin);
 
-/**
- * GET /api/goals
- * Get all goals for the user
- */
+// GET / — list all goals with progress %, months remaining, and recommended monthly
 router.get('/', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -27,10 +26,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-/**
- * POST /goals
- * Create a new goal
- */
+// POST / — create a new savings goal
 router.post('/', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -59,10 +55,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-/**
- * GET /goals/:id
- * Get a specific goal
- */
+// GET /:id — fetch a single goal with computed progress fields
 router.get('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -85,10 +78,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * PUT /goals/:id
- * Update a goal
- */
+// PUT /:id — update goal fields
 router.put('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -121,10 +111,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * DELETE /goals/:id
- * Delete a goal
- */
+// DELETE /:id — remove a goal by ID
 router.delete('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -140,10 +127,7 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * PATCH /goals/:id/progress
- * Update goal progress
- */
+// PATCH /:id/progress — add an amount to currentAmount and auto-complete when target is reached
 router.patch('/:id/progress', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;

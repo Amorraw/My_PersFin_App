@@ -1,3 +1,5 @@
+// Transaction routes: CRUD with automatic account balance updates after each change
+
 import { Router, Request, Response } from "express";
 import { Transaction } from "../models/Transaction";
 import { Account } from "../models/Account";
@@ -59,7 +61,7 @@ async function recalculateAccountBalance(userId: string, accountId: string): Pro
 // All routes require authentication
 router.use(requireAuth);
 
-// Get all transactions for the logged-in user
+// GET / — list transactions for the user, filterable by accountId and date range
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -86,7 +88,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get single transaction
+// GET /:id — fetch a single transaction by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -103,7 +105,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Create new transaction
+// POST / — create a transaction and immediately update the linked account balance
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -140,7 +142,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// Update transaction
+// PUT /:id — update a transaction; reverses old balance delta and applies new one
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -193,7 +195,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Delete single transaction
+// DELETE /:id — delete one transaction and recalculate the affected account balance
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -214,7 +216,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Delete selected or all transactions for the user
+// DELETE / — bulk-delete transactions by ID array (or all), then recalculate balances
 router.delete("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

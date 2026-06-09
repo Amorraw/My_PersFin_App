@@ -1,6 +1,8 @@
+// Recurring transaction manager with pattern-detection from transaction history
 import { useState, useEffect } from "react";
 import EmptyState from "../components/EmptyState";
 import './RecurringTransactions.css';
+import { fmtMoney as CAD } from "../utils/formatters";
 
 interface Recurring {
   _id: string;
@@ -32,8 +34,6 @@ interface DetectedPattern {
 
 const FREQUENCIES = ["daily", "weekly", "biweekly", "monthly", "quarterly", "yearly"];
 const CATEGORIES = ["Housing", "Utilities", "Subscriptions", "Insurance", "Transportation", "Food", "Health", "Savings", "Income", "Other"];
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
 function formatDate(iso: string): string {
   return iso.slice(0, 10);
 }
@@ -50,6 +50,7 @@ const blank = (): Omit<Recurring, "_id"> => ({
   isActive: true,
 });
 
+// Renders recurring items list and auto-detected pattern suggestions
 export default function RecurringTransactions() {
   const [items, setItems] = useState<Recurring[]>([]);
   const [loading, setLoading] = useState(true);

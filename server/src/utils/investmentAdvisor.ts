@@ -1,8 +1,4 @@
-/**
- * Canadian Investment Advisor & Portfolio Recommendation Engine
- * Phase 3: Investment Recommendations
- * Provides goal-based asset allocation, ETF recommendations, and risk profiling
- */
+// Goal-based investment advisor: risk profiling, ETF picks, projections, and Monte Carlo simulation
 
 export interface RiskProfile {
   profile: "conservative" | "moderate" | "aggressive";
@@ -30,10 +26,7 @@ export interface PortfolioProjection {
   monthlyInvestmentNeeded: number;
 }
 
-/**
- * Determine asset allocation based on risk profile
- * Canadian standard allocation models
- */
+// Return equity/fixed-income/alternatives/cash split for a named risk profile
 export function getRiskProfile(profile: "conservative" | "moderate" | "aggressive"): RiskProfile {
   const allocations: Record<string, RiskProfile> = {
     conservative: {
@@ -62,9 +55,7 @@ export function getRiskProfile(profile: "conservative" | "moderate" | "aggressiv
   return allocations[profile];
 }
 
-/**
- * Recommend appropriate risk profile based on time horizon
- */
+// Pick conservative/moderate/aggressive based purely on years remaining to goal
 export function recommendRiskProfile(
   yearsToGoal: number,
   currentAge: number,
@@ -82,9 +73,7 @@ export function recommendRiskProfile(
   return "conservative";
 }
 
-/**
- * Generate Canadian ETF recommendations based on allocation
- */
+// Map an allocation profile to specific Canadian ETFs (VFV, VCN, VAB, VRE, etc.)
 export function getETFRecommendations(
   allocation: RiskProfile,
   preferLowCost: boolean = true
@@ -174,10 +163,7 @@ export function getETFRecommendations(
   return recommendations;
 }
 
-/**
- * Calculate required monthly investment to reach goal
- * Using future value of annuity formula with annual returns
- */
+// Solve for monthly payment using future-value-of-annuity formula
 export function calculateMonthlyInvestmentNeeded(
   currentAmount: number,
   goalAmount: number,
@@ -219,9 +205,7 @@ export function calculateMonthlyInvestmentNeeded(
   };
 }
 
-/**
- * Project portfolio growth over time
- */
+// Compound balance month-by-month and emit one snapshot per year
 export function projectPortfolioGrowth(
   currentAmount: number,
   monthlyInvestment: number,
@@ -270,10 +254,7 @@ export function projectPortfolioGrowth(
   return projections;
 }
 
-/**
- * Calculate success probability using Monte Carlo simulation
- * Based on historical market volatility
- */
+// Run 10,000 Monte Carlo paths with profile-specific volatility to estimate goal attainment %
 export function calculateSuccessProbability(
   currentAmount: number,
   monthlyInvestment: number,
@@ -320,9 +301,7 @@ export function calculateSuccessProbability(
   return Math.round((successCount / simulations) * 100);
 }
 
-/**
- * Generate comprehensive investment recommendations
- */
+// Orchestrate risk profile, ETF selection, monthly target, projections, and success probability
 export function generateInvestmentRecommendation(
   currentNetWorth: number,
   goalAmount: number,

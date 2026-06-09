@@ -1,3 +1,4 @@
+// Mongoose schema for in-app alerts with category, severity, and read/dismissed state
 import mongoose, { Schema, Document } from "mongoose";
 
 export type AlertCategory =

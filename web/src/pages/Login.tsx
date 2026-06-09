@@ -1,8 +1,10 @@
+// Combined login / register page that toggles between the two forms
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import './Login.css';
 
+// Renders login or registration form depending on isLogin toggle state
 export default function Login() {
   const navigate = useNavigate();
   const { login, register } = useAuth();

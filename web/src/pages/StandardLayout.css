@@ -376,6 +376,32 @@
   font-size: 0.78rem;
 }
 
+/* ── SECTION CARD (input / config panels) ────────────────────────────────── */
+.section-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+/* ── TABLE CARD (data tables with header) ────────────────────────────────── */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+
+/* ── ERROR MESSAGE ───────────────────────────────────────────────────────── */
+.error-msg {
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
 /* ── LOADING STATE ───────────────────────────────────────────────────────── */
 .loading {
   opacity: 0.6;
