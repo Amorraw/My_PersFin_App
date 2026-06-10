@@ -1,4 +1,5 @@
 "use strict";
+// Budget routes: CRUD, period summaries with rollover, payday plans, and Canadian templates
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const Budget_1 = require("../models/Budget");
@@ -102,11 +103,13 @@ function getMajorMeta(category, categoryKey) {
 }
 // All routes require authentication
 router.use(requireLogin_1.requireAuth);
+// GET /templates/canada — return the preset Canadian budget template categories and amounts
 router.get("/templates/canada", (_req, res) => {
     return res.json({
         templates: CANADIAN_TEMPLATE_CATEGORIES
     });
 });
+// POST /templates/canada/apply — bulk-create Canadian template budgets skipping existing ones
 router.post("/templates/canada/apply", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -138,6 +141,7 @@ router.post("/templates/canada/apply", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
+// POST /major-plan — upsert subcategory budgets for an entire major category at once
 router.post("/major-plan", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -220,6 +224,7 @@ router.post("/major-plan", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
+// DELETE /major-plan/:majorCategoryKey — remove all budgets for a major category and period
 router.delete("/major-plan/:majorCategoryKey", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -249,6 +254,7 @@ router.delete("/major-plan/:majorCategoryKey", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
+// GET /summary — spending vs budget per category for the current period, with rollover
 router.get("/summary", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -361,6 +367,7 @@ router.get("/summary", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
+// GET /payday-plan — allocate a paycheck across budget envelopes after savings and debt
 router.get("/payday-plan", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -421,7 +428,7 @@ router.get("/payday-plan", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Get all budgets for the logged-in user
+// GET / — list all budgets for the logged-in user
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -433,7 +440,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Get single budget
+// GET /:id — fetch a single budget by ID
 router.get("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -448,7 +455,7 @@ router.get("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Get budget with spending
+// GET /:id/spending — return a budget with total spent, remaining, and percent used
 router.get("/:id/spending", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -478,7 +485,7 @@ router.get("/:id/spending", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Create new budget
+// POST / — create a new budget with category, amount, period, and rollover settings
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -507,7 +514,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Update budget
+// PUT /:id — update budget fields and re-resolve major category metadata
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -538,7 +545,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Delete budget
+// DELETE /:id — remove a budget by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;

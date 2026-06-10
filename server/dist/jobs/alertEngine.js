@@ -11,6 +11,7 @@ const Transaction_1 = require("../models/Transaction");
 const TaxAccount_1 = require("../models/TaxAccount");
 const NetWorthSnapshot_1 = require("../models/NetWorthSnapshot");
 const NET_WORTH_MILESTONES = [10000, 25000, 50000, 100000, 250000, 500000, 1000000];
+// Create notification only if no identical undismissed alert exists for today (dedup by key)
 async function upsertAlert(userId, category, title, message, severity, dedupKey) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -25,6 +26,7 @@ async function upsertAlert(userId, category, title, message, severity, dedupKey)
         await Notification_1.default.create({ userId, category, title, message, severity, relatedId: dedupKey });
     }
 }
+// Run all alert checks for a single user in parallel
 async function runAlertEngine(userId) {
     await Promise.all([
         checkBills(userId),
@@ -34,6 +36,7 @@ async function runAlertEngine(userId) {
         checkSpendingSpike(userId),
     ]);
 }
+// Alert critical (≤1 day) and warning (within reminder window) for upcoming bills
 async function checkBills(userId) {
     const bills = await Bill_1.Bill.find({ userId: userId.toString(), status: "active" });
     const today = new Date();
@@ -43,6 +46,7 @@ async function checkBills(userId) {
         const dueDay = bill.dueDate;
         const reminderDays = bill.reminderDaysBefore ?? 7;
         let daysUntilDue = dueDay - todayDay;
+        // Wrap negative values so due-day-passed this month reads as days until next cycle
         if (daysUntilDue < 0)
             daysUntilDue += daysInMonth;
         const key = `bill-${bill._id}-${today.getFullYear()}-${today.getMonth()}`;
@@ -54,6 +58,7 @@ async function checkBills(userId) {
         }
     }
 }
+// Fire warning at 80% spend and critical when the monthly budget category is exceeded
 async function checkBudgets(userId) {
     const budgets = await Budget_1.Budget.find({ userId, isActive: true });
     if (!budgets.length)
@@ -87,6 +92,7 @@ async function checkBudgets(userId) {
         }
     }
 }
+// Warn when RRSP room drops below $500 or TFSA is over-contributed
 async function checkTaxAccounts(userId) {
     const acct = await TaxAccount_1.TaxAccount.findOne({ userId });
     if (!acct)
@@ -109,6 +115,7 @@ async function checkTaxAccounts(userId) {
         await upsertAlert(userId, "tfsa", "TFSA Room Running Low", `You have $${tfsaRoom.toFixed(2)} of TFSA contribution room remaining this year.`, "info", key);
     }
 }
+// Celebrate milestone crossings and warn on month-over-month drops ≥ 10%
 async function checkNetWorthMilestones(userId) {
     const snapshots = await NetWorthSnapshot_1.NetWorthSnapshot.find({ userId: userId.toString() }).sort({ snapshotDate: -1 }).limit(2);
     if (snapshots.length < 1)
@@ -131,6 +138,7 @@ async function checkNetWorthMilestones(userId) {
         }
     }
 }
+// Alert when a category's pace-adjusted spend is ≥ 50% above last month's actual spend
 async function checkSpendingSpike(userId) {
     const now = new Date();
     const startThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -161,7 +169,7 @@ async function checkSpendingSpike(userId) {
         const lastSpend = lastMap[cat] ?? 0;
         if (lastSpend === 0)
             continue;
-        // Normalize for partial month (scale last month's full spend by days elapsed)
+        // Project current spend to end-of-month so a partial month doesn't deflate the comparison
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         const daysSoFar = now.getDate();
         const paceAdjusted = (thisSpend / daysSoFar) * daysInMonth;

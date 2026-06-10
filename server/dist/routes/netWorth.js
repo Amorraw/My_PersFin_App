@@ -1,4 +1,5 @@
 "use strict";
+// Net worth routes: live calculation, point-in-time snapshots, and historical history
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const NetWorthSnapshot_1 = require("../models/NetWorthSnapshot");
@@ -65,9 +66,7 @@ function calcNetWorth(accounts, debts, properties) {
     };
     return { totalAssets, totalLiabilities, netWorth, breakdown };
 }
-/**
- * GET /net-worth/current
- */
+// GET /current — compute live net worth from accounts, debts, and properties
 router.get('/current', async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -82,9 +81,7 @@ router.get('/current', async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /net-worth/snapshot
- */
+// POST /snapshot — persist today's net worth breakdown to the history collection
 router.post('/snapshot', async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -108,9 +105,7 @@ router.post('/snapshot', async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /net-worth/history
- */
+// GET /history — return past net worth snapshots up to N months back (default 12)
 router.get('/history', async (req, res, next) => {
     try {
         const userId = req.user._id;

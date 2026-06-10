@@ -1,9 +1,5 @@
 "use strict";
-/**
- * Canadian Investment Advisor & Portfolio Recommendation Engine
- * Phase 3: Investment Recommendations
- * Provides goal-based asset allocation, ETF recommendations, and risk profiling
- */
+// Goal-based investment advisor: risk profiling, ETF picks, projections, and Monte Carlo simulation
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRiskProfile = getRiskProfile;
 exports.recommendRiskProfile = recommendRiskProfile;
@@ -12,10 +8,7 @@ exports.calculateMonthlyInvestmentNeeded = calculateMonthlyInvestmentNeeded;
 exports.projectPortfolioGrowth = projectPortfolioGrowth;
 exports.calculateSuccessProbability = calculateSuccessProbability;
 exports.generateInvestmentRecommendation = generateInvestmentRecommendation;
-/**
- * Determine asset allocation based on risk profile
- * Canadian standard allocation models
- */
+// Return equity/fixed-income/alternatives/cash split for a named risk profile
 function getRiskProfile(profile) {
     const allocations = {
         conservative: {
@@ -42,9 +35,7 @@ function getRiskProfile(profile) {
     };
     return allocations[profile];
 }
-/**
- * Recommend appropriate risk profile based on time horizon
- */
+// Pick conservative/moderate/aggressive based purely on years remaining to goal
 function recommendRiskProfile(yearsToGoal, currentAge, retirementAge) {
     // Time horizon more than 15 years = aggressive possible
     if (yearsToGoal > 15) {
@@ -57,9 +48,7 @@ function recommendRiskProfile(yearsToGoal, currentAge, retirementAge) {
     // Time horizon less than 7 years = conservative
     return "conservative";
 }
-/**
- * Generate Canadian ETF recommendations based on allocation
- */
+// Map an allocation profile to specific Canadian ETFs (VFV, VCN, VAB, VRE, etc.)
 function getETFRecommendations(allocation, preferLowCost = true) {
     const recommendations = [];
     // Equity allocation (60% Canadian, 40% US/International for diversification)
@@ -140,10 +129,7 @@ function getETFRecommendations(allocation, preferLowCost = true) {
     }
     return recommendations;
 }
-/**
- * Calculate required monthly investment to reach goal
- * Using future value of annuity formula with annual returns
- */
+// Solve for monthly payment using future-value-of-annuity formula
 function calculateMonthlyInvestmentNeeded(currentAmount, goalAmount, yearsToGoal, annualReturnRate) {
     const monthlyRate = annualReturnRate / 12;
     const monthsToGoal = yearsToGoal * 12;
@@ -170,9 +156,7 @@ function calculateMonthlyInvestmentNeeded(currentAmount, goalAmount, yearsToGoal
         totalReturns: Math.max(0, totalReturns),
     };
 }
-/**
- * Project portfolio growth over time
- */
+// Compound balance month-by-month and emit one snapshot per year
 function projectPortfolioGrowth(currentAmount, monthlyInvestment, annualReturnRate, yearsToProject, startingAge) {
     const projections = [];
     const monthlyRate = annualReturnRate / 12;
@@ -207,10 +191,7 @@ function projectPortfolioGrowth(currentAmount, monthlyInvestment, annualReturnRa
     }
     return projections;
 }
-/**
- * Calculate success probability using Monte Carlo simulation
- * Based on historical market volatility
- */
+// Run 10,000 Monte Carlo paths with profile-specific volatility to estimate goal attainment %
 function calculateSuccessProbability(currentAmount, monthlyInvestment, goalAmount, yearsToGoal, riskProfile) {
     // Historical volatility by profile
     const volatility = {
@@ -243,9 +224,7 @@ function calculateSuccessProbability(currentAmount, monthlyInvestment, goalAmoun
     }
     return Math.round((successCount / simulations) * 100);
 }
-/**
- * Generate comprehensive investment recommendations
- */
+// Orchestrate risk profile, ETF selection, monthly target, projections, and success probability
 function generateInvestmentRecommendation(currentNetWorth, goalAmount, goalYear, currentAge, retirementAge) {
     const currentYear = new Date().getFullYear();
     const yearsToGoal = goalYear - currentYear;

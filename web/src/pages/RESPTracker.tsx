@@ -456,7 +456,7 @@ export default function RESPTracker() {
             </div>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setPlanModal(false)} style={{ padding: "10px 20px", border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setPlanModal(false)} style={{ padding: "10px 20px", border: "1px solid #FECACA", borderRadius: 8, background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
               <button onClick={savePlan} disabled={planSaving} style={{ padding: "10px 22px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
                 {planSaving ? "Saving…" : "Save"}
               </button>
@@ -525,7 +525,7 @@ export default function RESPTracker() {
             </div>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setContribModal(false)} style={{ padding: "10px 20px", border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setContribModal(false)} style={{ padding: "10px 20px", border: "1px solid #FECACA", borderRadius: 8, background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
               <button onClick={saveContrib} disabled={contribSaving} style={{ padding: "10px 22px", background: "#059669", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
                 {contribSaving ? "Saving…" : "Record"}
               </button>

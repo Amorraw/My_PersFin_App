@@ -1,4 +1,5 @@
 "use strict";
+// GIC routes: CRUD for GIC holdings with maturity calculation, CDIC warnings, and ladder planning
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const GIC_1 = require("../models/GIC");
@@ -24,7 +25,7 @@ function calcMaturityValue(principal, rate, termMonths, isCompound, freq) {
                 : 1;
     return principal * Math.pow(1 + rate / 100 / n, n * years);
 }
-// GET / — list all GICs
+// GET / — list all GICs for the user, sorted by maturity date
 router.get("/", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -35,7 +36,7 @@ router.get("/", async (req, res, next) => {
         next(err);
     }
 });
-// GET /summary — totals + CDIC warnings + upcoming maturities
+// GET /summary — totals, CDIC over-limit warnings, and maturities in the next 90 days
 router.get("/summary", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -80,7 +81,7 @@ router.get("/summary", async (req, res, next) => {
         next(err);
     }
 });
-// POST / — create GIC
+// POST / — create a GIC and auto-compute maturity date and maturity value
 router.post("/", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -102,7 +103,7 @@ router.post("/", async (req, res, next) => {
         next(err);
     }
 });
-// PUT /:id — update GIC
+// PUT /:id — update GIC fields and recalculate maturity date and value
 router.put("/:id", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -127,7 +128,7 @@ router.put("/:id", async (req, res, next) => {
         next(err);
     }
 });
-// DELETE /:id
+// DELETE /:id — remove a GIC by ID
 router.delete("/:id", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -140,7 +141,7 @@ router.delete("/:id", async (req, res, next) => {
         next(err);
     }
 });
-// POST /ladder — calculate optimal GIC ladder
+// POST /ladder — split a lump sum into a GIC ladder across 1–N year terms
 router.post("/ladder", async (req, res, next) => {
     try {
         const { totalAmount, ladderYears = 5, ratesByTerm } = req.body;

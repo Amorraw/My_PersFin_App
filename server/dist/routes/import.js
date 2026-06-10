@@ -9,10 +9,9 @@ const Account_1 = require("../models/Account");
 const requireLogin_1 = require("../middleware/requireLogin");
 const categorization_1 = require("../utils/categorization");
 const pdfStatementParser_1 = require("../utils/pdfStatementParser");
+const pdfTextExtractor_1 = require("../utils/pdfTextExtractor");
 const multer_1 = __importDefault(require("multer"));
 const sync_1 = require("csv-parse/sync");
-// @ts-ignore — pdf-parse v1.x ships CJS without bundled types; @types/pdf-parse covers it
-const pdf_parse_1 = __importDefault(require("pdf-parse"));
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
 const LIABILITY_TYPES = new Set([
@@ -494,11 +493,10 @@ router.post("/statement", upload.single("statement"), async (req, res) => {
         const account = await Account_1.Account.findOne({ _id: accountId, userId });
         if (!account)
             return res.status(404).json({ message: "Account not found" });
-        // Extract text from PDF
+        // Extract text from PDF (layout-aware: preserves column spacing for table parsing)
         let pdfText;
         try {
-            const parsed = await (0, pdf_parse_1.default)(req.file.buffer);
-            pdfText = parsed.text || "";
+            pdfText = await (0, pdfTextExtractor_1.extractPdfText)(req.file.buffer);
         }
         catch {
             return res.status(422).json({

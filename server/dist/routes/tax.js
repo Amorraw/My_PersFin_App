@@ -1,4 +1,5 @@
 "use strict";
+// Tax routes: RRSP/TFSA account management, contribution room, RRSP vs TFSA comparison, and capital gains
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -41,10 +42,7 @@ const taxPlanner = __importStar(require("../utils/taxPlanner"));
 const router = (0, express_1.Router)();
 // Require authentication for all routes
 router.use(requireLogin_1.requireLogin);
-/**
- * GET /tax-accounts
- * Get all tax accounts for the user
- */
+// GET / — list all tax accounts for the user
 router.get("/", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -55,10 +53,7 @@ router.get("/", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts
- * Create a new tax account (RRSP, TFSA, or Non-Registered)
- */
+// POST / — create a tax account and seed initial RRSP/TFSA contribution room
 router.post("/", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -93,16 +88,8 @@ router.post("/", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/tfsa-room/calculator
- * Standalone TFSA lifetime room calculator by birth year.
- * Must be registered before /:id to avoid route collision.
- *
- * Query params:
- *   birthYear                – year of birth (required)
- *   totalContributions       – all TFSA contributions ever made (default 0)
- *   totalWithdrawalsPriorYears – TFSA withdrawals made before this calendar year (default 0)
- */
+// GET /tfsa-room/calculator — compute lifetime TFSA room and penalty from birth year and contributions
+// Must be declared before /:id to avoid Express treating "tfsa-room" as an ID.
 router.get("/tfsa-room/calculator", async (req, res, next) => {
     try {
         const { birthYear, totalContributions = "0", totalWithdrawalsPriorYears = "0", } = req.query;
@@ -147,10 +134,7 @@ router.get("/tfsa-room/calculator", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/:id
- * Get detailed tax account with investments
- */
+// GET /:id — fetch a tax account and its linked investment positions
 router.get("/:id", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -166,10 +150,7 @@ router.get("/:id", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/:id/rrsp-room
- * Calculate remaining RRSP contribution room
- */
+// GET /:id/rrsp-room — calculate remaining RRSP deduction room for this year
 router.get("/:id/rrsp-room", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -192,10 +173,7 @@ router.get("/:id/rrsp-room", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/:id/tfsa-room
- * Calculate remaining TFSA contribution room
- */
+// GET /:id/tfsa-room — calculate remaining TFSA contribution room
 router.get("/:id/tfsa-room", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -218,10 +196,7 @@ router.get("/:id/tfsa-room", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/:id/tax-loss-harvesting
- * Identify tax-loss harvesting opportunities
- */
+// GET /:id/tax-loss-harvesting — find unrealized-loss positions available for harvesting
 router.get("/:id/tax-loss-harvesting", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -245,10 +220,7 @@ router.get("/:id/tax-loss-harvesting", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts/:id/rrsp-tax-savings
- * Calculate tax savings from RRSP contribution
- */
+// POST /:id/rrsp-tax-savings — estimate tax refund from an RRSP contribution at a marginal rate
 router.post("/:id/rrsp-tax-savings", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -268,10 +240,7 @@ router.post("/:id/rrsp-tax-savings", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts/:id/capital-gains-tax
- * Calculate capital gains tax on unrealized gains
- */
+// POST /:id/capital-gains-tax — estimate tax owing on unrealized gains in non-registered accounts
 router.post("/:id/capital-gains-tax", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -299,10 +268,7 @@ router.post("/:id/capital-gains-tax", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/:id/dividend-optimization
- * Get dividend account optimization recommendations
- */
+// GET /:id/dividend-optimization — recommend best account type for dividend income
 router.get("/:id/dividend-optimization", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -318,10 +284,7 @@ router.get("/:id/dividend-optimization", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts/spousal-rrsp-recommendation
- * Get spousal RRSP recommendation for income splitting
- */
+// POST /spousal-rrsp/recommendation — advise on spousal RRSP contributions for income splitting
 router.post("/spousal-rrsp/recommendation", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -338,10 +301,7 @@ router.post("/spousal-rrsp/recommendation", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts/:id/optimal-withdrawal-sequence
- * Calculate optimal withdrawal sequence to minimize taxes
- */
+// POST /:id/optimal-withdrawal-sequence — order withdrawals across accounts to minimize tax
 router.post("/:id/optimal-withdrawal-sequence", async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -356,10 +316,7 @@ router.post("/:id/optimal-withdrawal-sequence", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * GET /tax-accounts/marginal-tax-rate?income=50000&province=ON
- * Get estimated marginal tax rate
- */
+// GET /marginal-rate/calculator — return federal + provincial marginal rates for an income/province
 router.get("/marginal-rate/calculator", async (req, res, next) => {
     try {
         const { income = 50000, province = "ON" } = req.query;
@@ -370,18 +327,8 @@ router.get("/marginal-rate/calculator", async (req, res, next) => {
         next(err);
     }
 });
-/**
- * POST /tax-accounts/rrsp-vs-tfsa
- * RRSP vs TFSA decision tool.
- *
- * Fair comparison methodology (same pre-tax cost):
- *   RRSP path : Contribute C → refund = C × currentRate reinvested in TFSA
- *               At retirement: RRSP after-tax + TFSA refund portion
- *   TFSA path : Contribute C × (1−currentRate) (same out-of-pocket)
- *               At retirement: TFSA balance, fully tax-free
- *
- * RRSP wins when currentRate > retirementRate.
- */
+// POST /rrsp-vs-tfsa — compare RRSP vs TFSA retirement value on a same-pre-tax-cost basis
+// RRSP wins when the current marginal rate exceeds the expected retirement rate.
 router.post("/rrsp-vs-tfsa", async (req, res, next) => {
     try {
         const { currentIncome, expectedRetirementIncome, province = "ON", contributionAmount, yearsToRetirement, assumedAnnualReturn = 6, } = req.body;

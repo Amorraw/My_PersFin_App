@@ -4,7 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendPasswordResetEmail = sendPasswordResetEmail;
+// Nodemailer wrapper for transactional emails; logs to console when SMTP is not configured
 const nodemailer_1 = __importDefault(require("nodemailer"));
+// Build a nodemailer transport from env vars; returns null if SMTP creds are absent
 function createTransport() {
     const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS)
@@ -16,6 +18,7 @@ function createTransport() {
         auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
 }
+// Send a password-reset link email; falls back to console.log in development
 async function sendPasswordResetEmail(toEmail, resetToken, appUrl) {
     const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
     const transporter = createTransport();

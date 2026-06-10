@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Goal = void 0;
+// Mongoose schema for financial goals with target amount, date, and progress tracking
 const mongoose_1 = __importDefault(require("mongoose"));
 const goalSchema = new mongoose_1.default.Schema({
     userId: {

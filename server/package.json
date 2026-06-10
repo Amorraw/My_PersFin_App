@@ -31,7 +31,7 @@
     "nodemailer": "^8.0.7",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.10.38",
     "plaid": "^42.2.0",
     "react-router-dom": "^7.13.1",
     "recharts": "^3.8.0"
@@ -45,7 +45,6 @@
     "@types/node": "^25.3.5",
     "@types/passport": "^1.0.17",
     "@types/passport-local": "^1.0.38",
-    "@types/pdf-parse": "^1.1.5",
     "jest": "^29.7.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^29.4.11",

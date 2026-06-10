@@ -1,4 +1,5 @@
 "use strict";
+// Transaction routes: CRUD with automatic account balance updates after each change
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const Transaction_1 = require("../models/Transaction");
@@ -49,7 +50,7 @@ async function recalculateAccountBalance(userId, accountId) {
 }
 // All routes require authentication
 router.use(requireLogin_1.requireAuth);
-// Get all transactions for the logged-in user
+// GET / — list transactions for the user, filterable by accountId and date range
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -75,7 +76,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-// Get single transaction
+// GET /:id — fetch a single transaction by ID
 router.get("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -90,7 +91,7 @@ router.get("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-// Create new transaction
+// POST / — create a transaction and immediately update the linked account balance
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -121,7 +122,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-// Update transaction
+// PUT /:id — update a transaction; reverses old balance delta and applies new one
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -163,7 +164,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-// Delete single transaction
+// DELETE /:id — delete one transaction and recalculate the affected account balance
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -181,7 +182,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error", error: err.message });
     }
 });
-// Delete selected or all transactions for the user
+// DELETE / — bulk-delete transactions by ID array (or all), then recalculate balances
 router.delete("/", async (req, res) => {
     try {
         const userId = req.user.id;

@@ -13,9 +13,6 @@ exports.calculateCapitalGainsTax = calculateCapitalGainsTax;
 exports.optimizeDividendAccounts = optimizeDividendAccounts;
 exports.recommendSpousalRRSP = recommendSpousalRRSP;
 exports.calculateOptimalWithdrawalSequence = calculateOptimalWithdrawalSequence;
-/**
- * Canadian Tax Planning Utilities for Personal Finance
- */
 // 2024 Canadian tax limits
 exports.TAX_LIMITS = {
     RRSP_ANNUAL_MAX: 31560,
@@ -27,10 +24,8 @@ exports.TAX_LIMITS = {
     CAPITAL_GAINS_ANNUAL_THRESHOLD: 250000,
     DIVIDEND_TAX_CREDIT: 0.38, // Approximate for Canadian dividends
 };
-/**
- * Calculate RRSP contribution room
- * Formula: (18% of prior year income) + unused room from previous years - overcontributions
- */
+// ── RRSP ─────────────────────────────────────────────────────────────────────
+// Calculate remaining RRSP room: 18% of prior income + unused room − contributions
 function calculateRRSPRoom(priorYearIncome, currentYearContributions, lifetimeUnusedRoom) {
     const annualRoom = Math.min(priorYearIncome * exports.TAX_LIMITS.RRSP_PERCENTAGE, exports.TAX_LIMITS.RRSP_ANNUAL_MAX);
     const totalAvailableRoom = lifetimeUnusedRoom + annualRoom;
@@ -47,14 +42,8 @@ exports.TFSA_ANNUAL_LIMITS = {
     2023: 6500,
     2024: 7000, 2025: 7000, 2026: 7000, // 2025/2026 confirmed/projected
 };
-/**
- * Calculate the full TFSA lifetime room schedule for a given birth year.
- * Room accumulates starting the year the person turns 18 (or 2009, whichever is later).
- * Withdrawals re-add room the following calendar year.
- *
- * @param birthYear     The person's year of birth
- * @param asOfYear      Calculate room up to and including this year (defaults to current year)
- */
+// ── TFSA ─────────────────────────────────────────────────────────────────────
+// Build year-by-year TFSA room schedule from birth year to asOfYear
 function calculateTFSALifetimeRoomSchedule(birthYear, asOfYear = new Date().getFullYear()) {
     const schedule = [];
     let cumulative = 0;
@@ -68,19 +57,12 @@ function calculateTFSALifetimeRoomSchedule(birthYear, asOfYear = new Date().getF
     }
     return schedule;
 }
-/**
- * Calculate TFSA contribution room
- * Each Canadian gets the annual limit for each year they are 18+.
- * Room carries forward indefinitely; withdrawals re-add the following year.
- */
+// Quick TFSA room check given pre-computed lifetime room and current-year activity
 function calculateTFSARoom(lifetimeUnusedRoom, currentYearContributions, currentYearWithdrawals = 0) {
     const totalAvailableRoom = lifetimeUnusedRoom + currentYearWithdrawals;
     return Math.max(0, totalAvailableRoom - currentYearContributions);
 }
-/**
- * Calculate remaining TFSA room given birth year, total contributions, and total withdrawals.
- * Withdrawals from prior years add back as room; current-year withdrawals add back next year.
- */
+// Full TFSA room calculation including over-contribution penalty from birth year
 function calculateTFSARoomFromBirthYear(birthYear, totalContributionsEver, totalWithdrawalsPriorYears = 0, asOfYear = new Date().getFullYear()) {
     const schedule = calculateTFSALifetimeRoomSchedule(birthYear, asOfYear);
     const lifetimeRoom = schedule[schedule.length - 1]?.cumulativeRoom ?? 0;
@@ -97,10 +79,8 @@ function calculateTFSARoomFromBirthYear(birthYear, totalContributionsEver, total
         schedule,
     };
 }
-/**
- * Identify tax-loss harvesting opportunities
- * Look for unrealized losses in non-registered accounts
- */
+// ── Investments & Capital Gains ──────────────────────────────────────────────
+// Return non-registered holdings with unrealized losses > $50 eligible for harvesting
 function identifyTaxLossHarvestingOpportunities(investments, accountType) {
     if (accountType !== "non-registered") {
         return []; // Only applicable to non-registered accounts
@@ -108,6 +88,7 @@ function identifyTaxLossHarvestingOpportunities(investments, accountType) {
     return investments.filter((inv) => inv.unrealizedGain < -50 && !inv.soldDate // Loss > $50
     );
 }
+// Compute tax refund now and projected tax cost at withdrawal
 function calculateRRSPTaxSavings(contributionAmount, marginalTaxRate, futureWithdrawalTaxRate = marginalTaxRate) {
     const taxSavings = contributionAmount * (marginalTaxRate / 100);
     const netContribution = contributionAmount - taxSavings;
@@ -120,6 +101,7 @@ function calculateRRSPTaxSavings(contributionAmount, marginalTaxRate, futureWith
         futureWithdrawalTax,
     };
 }
+// ── Marginal Tax Rates ───────────────────────────────────────────────────────
 // 2024 federal tax brackets (indexed annually)
 const FEDERAL_BRACKETS_2024 = [
     { limit: 55867, rate: 15 },
@@ -233,6 +215,7 @@ exports.PROVINCE_NAMES = {
     SK: "Saskatchewan",
     YT: "Yukon",
 };
+// Look up federal and provincial bracket rates for income and province
 function getMarginalTaxRateDetailed(income, province = "ON") {
     const prov = province.toUpperCase();
     const fedBracket = FEDERAL_BRACKETS_2024.find((b) => income <= b.limit) ?? FEDERAL_BRACKETS_2024[FEDERAL_BRACKETS_2024.length - 1];
@@ -253,12 +236,11 @@ function getMarginalTaxRateDetailed(income, province = "ON") {
             : `Up to $${provBracket.limit.toLocaleString()}`,
     };
 }
-/**
- * Get combined marginal tax rate for a given income and province (2024).
- */
+// Return combined federal + provincial marginal rate as a single percentage
 function getMarginalTaxRate(income, province = "ON") {
     return getMarginalTaxRateDetailed(income, province).combinedRate;
 }
+// Split gain across low/high inclusion buckets accounting for prior gains this year
 function calculateCapitalGainsTax(unrealizedGain, marginalTaxRate, priorGainsThisYear = 0) {
     const threshold = exports.TAX_LIMITS.CAPITAL_GAINS_ANNUAL_THRESHOLD;
     const lowRate = exports.TAX_LIMITS.CAPITAL_GAINS_INCLUSION_RATE_LOW;
@@ -284,6 +266,7 @@ function calculateCapitalGainsTax(unrealizedGain, marginalTaxRate, priorGainsThi
         breakdown,
     };
 }
+// Return pre-built tax-efficiency guidance for TFSA, RRSP, or non-registered accounts
 function optimizeDividendAccounts(taxAccountType) {
     const scenarios = {
         tfsa: {
@@ -307,6 +290,7 @@ function optimizeDividendAccounts(taxAccountType) {
     };
     return scenarios[taxAccountType] || scenarios["non-registered"];
 }
+// Size spousal RRSP contribution to close the income gap and quantify tax savings
 function recommendSpousalRRSP(highEarnerIncome, lowEarnerIncome, highEarnerMarginalRate, lowEarnerMarginalRate) {
     const incomeGap = highEarnerIncome - lowEarnerIncome;
     const recommendedContribution = Math.min(incomeGap * 0.25, // Contribute 25% of gap
@@ -321,6 +305,7 @@ function recommendSpousalRRSP(highEarnerIncome, lowEarnerIncome, highEarnerMargi
             `saving ${(recommendedContribution * (highEarnerMarginalRate - lowEarnerMarginalRate)) / 100} in taxes`,
     };
 }
+// Draw from each account in the lowest-to-highest tax cost order
 function calculateOptimalWithdrawalSequence(neededAmount, nonRegisteredBalance, tfsaBalance, rrspBalance, marginalTaxRate) {
     let remaining = neededAmount;
     const withdrawalOrder = [];

@@ -106,6 +106,15 @@ function parseDate(raw: string, yearHint: number): string | null {
     }
   }
 
+  // Jan02 — month abbreviation glued directly to day, no separator (TD statement format)
+  const monDayGluedMatch = s.match(/^([A-Za-z]{3})(\d{2})$/);
+  if (monDayGluedMatch) {
+    const m = MONTH_MAP[monDayGluedMatch[1].toLowerCase()];
+    if (m) {
+      return `${yearHint}-${m}-${monDayGluedMatch[2]}`;
+    }
+  }
+
   return null;
 }
 
@@ -297,6 +306,8 @@ const DATE_ANCHOR_RES = [
   /^(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})(?:\s+|$)/,
   /^([A-Za-z]{3,9}\.?\s+\d{1,2}(?:[,\s]+\d{4})?)(?:\s+|$)/,
   /^(\d{1,2}[\s\-][A-Za-z]{3,9}(?:[\s\-]\d{4})?)(?:\s+|$)/,
+  // JanDD — month abbreviation glued directly to day, no separator (TD statement format)
+  /^([A-Za-z]{3}(?:0[1-9]|[12]\d|3[01]))(?:\s+|$)/,
 ];
 
 // ── Description cleanup ───────────────────────────────────────────────────────

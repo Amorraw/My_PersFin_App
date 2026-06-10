@@ -1,4 +1,5 @@
 "use strict";
+// Debt routes: CRUD, dashboard KPIs, payoff strategy calculators, and account detection
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const Debt_1 = require("../models/Debt");
@@ -219,7 +220,7 @@ async function calcLiabilityBalance(userId, accountId) {
 }
 // All routes require authentication
 router.use(requireLogin_1.requireAuth);
-// ── GET /api/debts/dashboard ──────────────────────────────────────────────────
+// GET /dashboard — KPI totals, weighted interest rate, and upcoming due dates (30 days)
 router.get("/dashboard", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -289,7 +290,7 @@ router.get("/dashboard", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── GET /api/debts/payoff/strategies ─────────────────────────────────────────
+// GET /payoff/strategies — compare avalanche vs snowball payoff timelines and interest
 router.get("/payoff/strategies", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -327,7 +328,7 @@ router.get("/payoff/strategies", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── GET /api/debts/payoff/optimizer ──────────────────────────────────────────
+// GET /payoff/optimizer — allocate a payment budget across debts (avalanche priority)
 router.get("/payoff/optimizer", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -348,7 +349,7 @@ router.get("/payoff/optimizer", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── GET /api/debts/payoff/what-if ─────────────────────────────────────────────
+// GET /payoff/what-if — show months and interest saved by adding an extra payment
 router.get("/payoff/what-if", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -379,7 +380,7 @@ router.get("/payoff/what-if", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── GET /api/debts/detect-from-accounts ──────────────────────────────────────
+// GET /detect-from-accounts — scan liability accounts and suggest debts not yet imported
 // Must be declared before /:id so Express doesn't treat "detect-from-accounts" as an ID.
 router.get("/detect-from-accounts", async (req, res) => {
     try {
@@ -441,7 +442,7 @@ router.get("/detect-from-accounts", async (req, res) => {
         return res.status(500).json({ message: "Failed to detect debts from accounts" });
     }
 });
-// ── GET /api/debts ────────────────────────────────────────────────────────────
+// GET / — list all debts for the user, sorted by interest rate descending
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -453,7 +454,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── GET /api/debts/:id ────────────────────────────────────────────────────────
+// GET /:id — fetch a single debt by ID
 router.get("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -467,7 +468,7 @@ router.get("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── POST /api/debts ───────────────────────────────────────────────────────────
+// POST / — create a new tracked debt
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -491,7 +492,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── PUT /api/debts/:id ────────────────────────────────────────────────────────
+// PUT /:id — update debt fields including optional due date and schedule type
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -516,7 +517,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── POST /api/debts/:id/payment ───────────────────────────────────────────────
+// POST /:id/payment — apply a payment amount to reduce a debt's current balance
 router.post("/:id/payment", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -536,7 +537,7 @@ router.post("/:id/payment", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// ── DELETE /api/debts/:id ─────────────────────────────────────────────────────
+// DELETE /:id — remove a tracked debt by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;

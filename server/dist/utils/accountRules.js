@@ -1,5 +1,5 @@
 "use strict";
-// Canadian Account Types and Rules
+// Canadian registered account rules: contribution limits, withholding rates, CPP/OAS, and capital gains
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ACCOUNT_TYPE_FEATURES = exports.MARGINAL_TAX_RATES_2024 = exports.CAPITAL_GAINS_INCLUSION = exports.OAS_RATES_2024 = exports.CPP_RATES_2024 = exports.LIF_MAXIMUM_WITHDRAWAL_PERCENTAGES = exports.RRIF_MINIMUM_WITHDRAWAL_PERCENTAGES = exports.WITHHOLDING_TAX_RATES = exports.CONTRIBUTION_LIMITS_2024 = void 0;
 exports.calculateRRSPContributionRoom = calculateRRSPContributionRoom;
@@ -186,15 +186,19 @@ exports.MARGINAL_TAX_RATES_2024 = {
         60.575: 0.60575
     }
 };
+// ── Contribution Room Calculators ────────────────────────────────────────────
+// Compute new RRSP room earned this year minus contributions already made
 function calculateRRSPContributionRoom(previousYearIncome, previousYearContribution, provinceOfResidence) {
     const maxContribution = Math.min(previousYearIncome * 0.18, exports.CONTRIBUTION_LIMITS_2024.RRSP.annualLimit);
     return Math.max(0, maxContribution - previousYearContribution);
 }
+// Delegate to taxPlanner's authoritative annual-limits table for TFSA room
 function calculateTFSAContributionRoom(yearOfBirth, totalContributionsEver, totalWithdrawalsPriorYears = 0) {
     // Delegate to taxPlanner which has the authoritative annual limits table
     const { remainingRoom } = require("./taxPlanner").calculateTFSARoomFromBirthYear(yearOfBirth, totalContributionsEver, totalWithdrawalsPriorYears);
     return remainingRoom;
 }
+// Compute CESG grant (20% of contribution) capped by annual and lifetime maximums
 function calculateCESG(contribution, previousGrantAmount = 0, cumulativeGrants = 0) {
     const annualMax = exports.CONTRIBUTION_LIMITS_2024.RESP.cesgMaxAnnual;
     const lifetimeMax = exports.CONTRIBUTION_LIMITS_2024.RESP.cesgLifetimeMax;
@@ -204,10 +208,13 @@ function calculateCESG(contribution, previousGrantAmount = 0, cumulativeGrants =
     const limitedByLifetime = Math.min(annualGrant, lifetimeMax - cumulativeGrants);
     return Math.max(0, limitedByLifetime);
 }
+// ── Government Benefit Calculators ───────────────────────────────────────────
+// Look up CRA's age-based RRIF percentage and apply it to the current balance
 function calculateRRIFMinimumWithdrawal(age, balance) {
     const percentage = exports.RRIF_MINIMUM_WITHDRAWAL_PERCENTAGES[age] || 0;
     return balance * percentage;
 }
+// Estimate monthly CPP adjusted for early (−0.36%/mo) or deferred (+0.42%/mo) claiming age
 function calculateCPPBenefit(yearsOfContribution, averageInsurableEarnings, claimAge) {
     // Simplified CPP calculation
     const baseAge = 65;
@@ -218,11 +225,12 @@ function calculateCPPBenefit(yearsOfContribution, averageInsurableEarnings, clai
     else if (claimAge > baseAge) {
         percentage = 1.0 + (claimAge - baseAge) * 0.0042; // 0.42% per month after 65
     }
-    // Cap at 70
+    // Deferral gain is capped at age 70 (42% above the age-65 amount)
     percentage = Math.min(percentage, 1.42);
     const monthlyBenefit = (averageInsurableEarnings * exports.CPP_RATES_2024.maxMonthly) / 68500;
     return monthlyBenefit * percentage;
 }
+// Calculate OAS with 15% clawback above income threshold, plus GIS for low-income seniors
 function calculateOASWithGIS(income, age, maritalStatus = "single") {
     let oasMonthly = exports.OAS_RATES_2024.baseMonthly;
     // Apply clawback if income exceeds threshold
@@ -242,11 +250,14 @@ function calculateOASWithGIS(income, age, maritalStatus = "single") {
         clawback
     };
 }
+// ── Investment Calculations ──────────────────────────────────────────────────
+// Compute average adjusted cost base across all purchase lots
 function calculateACB(holdings) {
     const totalCost = holdings.reduce((sum, h) => sum + h.quantity * h.price, 0);
     const totalQuantity = holdings.reduce((sum, h) => sum + h.quantity, 0);
     return totalQuantity > 0 ? totalCost / totalQuantity : 0;
 }
+// Apply tiered inclusion rates to a sale, respecting prior realised gains this year
 function calculateCapitalGain(purchasePrice, sellingPrice, quantity, priorGainsThisYear = 0) {
     const capitalGain = (sellingPrice - purchasePrice) * quantity;
     const roomAtLowRate = Math.max(0, exports.CAPITAL_GAINS_INCLUSION.ANNUAL_THRESHOLD - priorGainsThisYear);
@@ -257,6 +268,8 @@ function calculateCapitalGain(purchasePrice, sellingPrice, quantity, priorGainsT
     const inclusionRate = capitalGain > 0 ? taxableGain / capitalGain : exports.CAPITAL_GAINS_INCLUSION.LOW_RATE;
     return { capitalGain, taxableGain, inclusionRate };
 }
+// ── Account Metadata ─────────────────────────────────────────────────────────
+// Return a plain-English description for a given registered account type code
 function getAccountTypeDescription(accountType) {
     const descriptions = {
         RRSP: "Registered Retirement Savings Plan - Tax-deferred savings, contributions are tax-deductible",

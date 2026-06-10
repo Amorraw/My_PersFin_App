@@ -1,4 +1,5 @@
 "use strict";
+// RESP routes: CRUD for education savings plans with per-beneficiary CESG room tracking
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const RESP_1 = require("../models/RESP");
@@ -42,7 +43,7 @@ function beneficiarySummary(beneficiaryName, contributions) {
         currentYearCesgRoom: Math.round(Math.min(MAX_CESG_PER_YEAR, Math.max(0, MAX_CESG_LIFETIME - totalCesg), Math.max(0, CESG_ELIGIBLE_PER_YEAR - (byYear[new Date().getFullYear()] || 0)) * CESG_RATE) * 100) / 100,
     };
 }
-// GET /api/resp
+// GET / — list all RESP plans for the user
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -54,7 +55,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// GET /api/resp/summary
+// GET /summary — aggregate RESP totals and CESG room per beneficiary across all plans
 router.get("/summary", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -81,7 +82,7 @@ router.get("/summary", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/resp
+// POST / — create a new RESP plan with beneficiaries
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -106,7 +107,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// PUT /api/resp/:id
+// PUT /:id — update RESP plan details
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -121,7 +122,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/resp/:id
+// DELETE /:id — remove a RESP plan by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -135,7 +136,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/resp/:id/contributions
+// POST /:id/contributions — add a contribution with CESG amount for a named beneficiary
 router.post("/:id/contributions", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -162,7 +163,7 @@ router.post("/:id/contributions", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/resp/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a specific contribution from a RESP plan
 router.delete("/:id/contributions/:cid", async (req, res) => {
     try {
         const userId = req.user.id;

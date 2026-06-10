@@ -4,10 +4,9 @@ import { Account } from "../models/Account";
 import { requireAuth } from "../middleware/requireLogin";
 import { categorizeTransaction } from "../utils/categorization";
 import { parseStatement } from "../utils/pdfStatementParser";
+import { extractPdfText } from "../utils/pdfTextExtractor";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
-// @ts-ignore — pdf-parse v1.x ships CJS without bundled types; @types/pdf-parse covers it
-import pdfParse from "pdf-parse";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -555,11 +554,10 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
     const account = await Account.findOne({ _id: accountId, userId });
     if (!account) return res.status(404).json({ message: "Account not found" });
 
-    // Extract text from PDF
+    // Extract text from PDF (layout-aware: preserves column spacing for table parsing)
     let pdfText: string;
     try {
-      const parsed = await pdfParse(req.file.buffer);
-      pdfText = parsed.text || "";
+      pdfText = await extractPdfText(req.file.buffer);
     } catch {
       return res.status(422).json({
         message: "Could not extract text from this PDF. It may be password-protected, corrupted, or a scanned image. Try exporting a machine-readable PDF from your bank's online portal."

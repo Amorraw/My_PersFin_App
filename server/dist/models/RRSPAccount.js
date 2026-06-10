@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RRSPAccount = void 0;
+// Mongoose schema for RRSP accounts with contribution and withdrawal history sub-documents
 const mongoose_1 = __importStar(require("mongoose"));
 const rrspAccountSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },
