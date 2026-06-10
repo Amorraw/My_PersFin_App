@@ -132,6 +132,29 @@ function preprocessText(text: string): string {
     .replace(/−/g, "-");           // unicode minus
 }
 
+// ── Fragmented-text recovery ──────────────────────────────────────────────────
+// Some bank statement PDFs (e.g. TD Canada Trust) render every word/number as a
+// run of 1-3 character glyph clusters, each separated from the next by a single
+// space that doesn't correspond to a real word or column boundary - e.g.
+// "Descri pt i on" instead of "Description", "M A R0 4" instead of "MAR04".
+// Detect this via a space-tolerant match against a known column header, then
+// collapse every isolated single space (leaving genuine multi-space gaps
+// intact) so dates, amounts and headers read as contiguous tokens again.
+function buildFuzzyRegex(literal: string): RegExp {
+  const pattern = literal
+    .split("")
+    .map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join(" ?");
+  return new RegExp(pattern, "i");
+}
+
+const TD_HEADER_FUZZY = buildFuzzyRegex("DescriptionWithdrawalsDepositsDateBalance");
+
+function recoverFragmentedText(text: string): string {
+  if (!TD_HEADER_FUZZY.test(text)) return text;
+  return text.replace(/(?<! ) (?! )/g, "");
+}
+
 // ── Header extraction ─────────────────────────────────────────────────────────
 
 function extractYear(text: string): number {
@@ -914,7 +937,7 @@ function parseCreditCard(text: string, yearHint: number): ParsedTransaction[] {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function parseStatement(pdfText: string): StatementParseResult {
-  const text = preprocessText(pdfText);
+  const text = recoverFragmentedText(preprocessText(pdfText));
   const yearHint = extractYear(text);
   const institution = detectInstitution(text);
   let statementType = detectStatementType(text);
@@ -954,6 +977,17 @@ export function parseStatement(pdfText: string): StatementParseResult {
     seen.add(key);
     return true;
   });
+
+  // TD's concatenated layout has no separator between an e-transfer's account
+  // reference number and the transaction amount (e.g. "TFR-TO401222751.00"),
+  // so the digit split between the two can occasionally be off by a digit or two.
+  if (isTDConcatenatedFormat(text) && transactions.some(t => /TFR-(TO|FR)/i.test(t.descriptionRaw) && /\d$/.test(t.descriptionRaw))) {
+    warnings.push(
+      "Some e-transfer rows (TFR-TO/TFR-FR) have an account reference number directly " +
+      "adjacent to the amount with no separator in the source PDF, so the parsed amount " +
+      "may be off by a digit or two. Please double-check transfer amounts below before importing."
+    );
+  }
 
   if (transactions.length === 0) {
     warnings.push(
