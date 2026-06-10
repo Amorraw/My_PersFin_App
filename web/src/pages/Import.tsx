@@ -384,7 +384,9 @@ export default function Import() {
   };
 
   const handlePdfPreview = async () => {
-    if (!pdfFile || !selectedAccount) { alert("Please select a PDF and an account"); return; }
+    if (!selectedAccount && !pdfFile) { alert("Please select an account and choose a PDF file"); return; }
+    if (!selectedAccount) { alert("Please select a target account"); return; }
+    if (!pdfFile) { alert("Please choose a PDF file"); return; }
     setPdfParsing(true);
     setPdfPreview(null);
     setPdfMeta(null);
@@ -721,7 +723,8 @@ export default function Import() {
             onClick={() => {
               setTab(t);
               if (t === "pdf") {
-                setSelectedAccount("");
+                // Note: selectedAccount is intentionally left as-is — the account
+                // selector is shared between tabs and the user's choice should persist.
                 setPdfPreview(null);
                 setPdfMeta(null);
                 setPdfResult(null);
