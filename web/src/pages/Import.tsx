@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import type { Account } from "../types";
 import { fmtMoney } from "../components/charts";
+import { CATEGORY_CATALOG } from "../data/categoryCatalog";
 import './Import.css';
 
 // ── Canadian bank catalogue ───────────────────────────────────────────────────
@@ -153,6 +154,8 @@ export default function Import() {
   const [pdfParsing, setPdfParsing] = useState(false);
   const [pdfImporting, setPdfImporting] = useState(false);
   const [pdfPreview, setPdfPreview] = useState<PdfPreview | null>(null);
+  const [pdfEditedTransactions, setPdfEditedTransactions] = useState<PdfTransaction[] | null>(null);
+  const [pdfEditMode, setPdfEditMode] = useState(false);
   const [pdfResult, setPdfResult] = useState<any>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -375,6 +378,8 @@ export default function Import() {
     if (e.target.files?.[0]) {
       setPdfFile(e.target.files[0]);
       setPdfPreview(null);
+      setPdfEditedTransactions(null);
+      setPdfEditMode(false);
       setPdfResult(null);
       setPdfError(null);
       setPdfMeta(null);
@@ -389,6 +394,8 @@ export default function Import() {
     if (!pdfFile) { alert("Please choose a PDF file"); return; }
     setPdfParsing(true);
     setPdfPreview(null);
+    setPdfEditedTransactions(null);
+    setPdfEditMode(false);
     setPdfMeta(null);
     setPdfResult(null);
     setPdfError(null);
@@ -403,6 +410,7 @@ export default function Import() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Parse failed");
       setPdfPreview(data);
+      setPdfEditedTransactions((data.transactions || []).map((t: PdfTransaction) => ({ ...t })));
       // Map parser institution to a CANADIAN_BANKS id; fall back to account name inference
       let instId = CANADIAN_BANKS.find(b => b.id === data.institutionGuess) ? data.institutionGuess : "";
       if (!instId) {
@@ -478,6 +486,8 @@ export default function Import() {
     setSelectedAccount("");
     setPdfFile(null);
     setPdfPreview(null);
+    setPdfEditedTransactions(null);
+    setPdfEditMode(false);
     setPdfMeta(null);
     setPdfResult(null);
     setPdfError(null);
@@ -486,20 +496,39 @@ export default function Import() {
     if (pdfInputRef.current) pdfInputRef.current.value = "";
   };
 
+  // Updates a single field of a previewed transaction before import
+  const updatePdfTransaction = (idx: number, patch: Partial<PdfTransaction>) => {
+    setPdfEditedTransactions(prev => {
+      if (!prev) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...patch };
+      return next;
+    });
+  };
+
   const handlePdfImport = async () => {
-    if (!pdfFile || !selectedAccount) return;
+    if (!pdfPreview || !pdfEditedTransactions || !selectedAccount) return;
     setPdfImporting(true);
     setPdfError(null);
     try {
-      const fd = new FormData();
-      fd.append("statement", pdfFile);
-      fd.append("accountId", selectedAccount);
-      fd.append("dryRun", "false");
-      const res = await fetch("/api/import/statement", { method: "POST", body: fd, credentials: "include" });
+      const res = await fetch("/api/import/statement/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ accountId: selectedAccount, transactions: pdfEditedTransactions }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Import failed");
-      setPdfResult(data);
+      setPdfResult({
+        institutionGuess: pdfPreview.institutionGuess,
+        periodFrom: pdfPreview.periodFrom,
+        periodTo: pdfPreview.periodTo,
+        warnings: pdfPreview.warnings,
+        ...data,
+      });
       setPdfPreview(null);
+      setPdfEditedTransactions(null);
+      setPdfEditMode(false);
       setPdfMeta(null);
       setPdfFile(null);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
@@ -859,7 +888,7 @@ export default function Import() {
             </button>
             {pdfPreview && pdfPreview.transactionCount > 0 && (
               <button onClick={handlePdfImport} disabled={pdfImporting} className="btn-import">
-                {pdfImporting ? "Importing..." : `Import ${pdfPreview.transactionCount} Transactions`}
+                {pdfImporting ? "Importing..." : `Import ${pdfEditedTransactions?.length ?? pdfPreview.transactionCount} Transactions`}
               </button>
             )}
             {pdfPreview && (
@@ -974,23 +1003,96 @@ export default function Import() {
 
               {pdfPreview.transactions.length > 0 && (
                 <>
-                  <h4 style={{ marginBottom: "0.5rem" }}>Preview (first {Math.min(pdfPreview.transactions.length, 20)} of {pdfPreview.transactionCount})</h4>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <h4 style={{ margin: 0 }}>Preview (first {Math.min(pdfPreview.transactions.length, 20)} of {pdfPreview.transactionCount})</h4>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setPdfEditMode(m => !m)}
+                    >
+                      {pdfEditMode ? "Done Editing" : "Edit Transactions"}
+                    </button>
+                  </div>
                   <div className="pdf-preview-table-wrap">
                     <table className="pdf-preview-table">
                       <thead>
                         <tr>{["Date", "Description", "Category", "Amount", "Type"].map(h => <th key={h}>{h}</th>)}</tr>
                       </thead>
                       <tbody>
-                        {[...pdfPreview.transactions]
-                          .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
+                        {(pdfEditedTransactions ?? pdfPreview.transactions)
+                          .map((t, idx) => ({ t, idx }))
+                          .sort((a, b) => b.t.postedDate.localeCompare(a.t.postedDate))
                           .slice(0, 20)
-                          .map((t, i) => (
-                          <tr key={i}>
-                            <td style={{ whiteSpace: "nowrap" }}>{t.postedDate}</td>
-                            <td style={{ maxWidth: "260px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.descriptionClean}>{t.descriptionClean}</td>
-                            <td>{t.category}</td>
-                            <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{fmtMoney(t.amount)}</td>
-                            <td><span className={`pdf-tx-type-badge ${t.type}`}>{t.type}</span></td>
+                          .map(({ t, idx }) => (
+                          <tr key={idx}>
+                            {pdfEditMode ? (
+                              <>
+                                <td>
+                                  <input
+                                    type="date"
+                                    className="pdf-meta-input"
+                                    value={t.postedDate}
+                                    onChange={e => updatePdfTransaction(idx, { postedDate: e.target.value })}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="pdf-meta-input"
+                                    style={{ width: "100%", minWidth: "180px" }}
+                                    value={t.descriptionClean}
+                                    onChange={e => updatePdfTransaction(idx, { descriptionClean: e.target.value })}
+                                  />
+                                </td>
+                                <td>
+                                  <select
+                                    className="pdf-meta-select"
+                                    value={t.category}
+                                    onChange={e => updatePdfTransaction(idx, { category: e.target.value })}
+                                  >
+                                    {!CATEGORY_CATALOG.some(major => major.subcategories.some(sub => sub.name === t.category)) && (
+                                      <option value={t.category}>{t.category}</option>
+                                    )}
+                                    {CATEGORY_CATALOG.map(major => (
+                                      <optgroup key={major.key} label={major.name}>
+                                        {major.subcategories.map(sub => (
+                                          <option key={sub.key} value={sub.name}>{sub.name}</option>
+                                        ))}
+                                      </optgroup>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    className="pdf-meta-input"
+                                    style={{ textAlign: "right", width: "100px" }}
+                                    value={t.amount}
+                                    onChange={e => updatePdfTransaction(idx, { amount: parseFloat(e.target.value) || 0 })}
+                                  />
+                                </td>
+                                <td>
+                                  <select
+                                    className="pdf-meta-select"
+                                    value={t.type}
+                                    onChange={e => updatePdfTransaction(idx, { type: e.target.value as "income" | "expense" })}
+                                  >
+                                    <option value="expense">Expense</option>
+                                    <option value="income">Income</option>
+                                  </select>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={{ whiteSpace: "nowrap" }}>{t.postedDate}</td>
+                                <td style={{ maxWidth: "260px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.descriptionClean}>{t.descriptionClean}</td>
+                                <td>{t.category}</td>
+                                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{fmtMoney(t.amount)}</td>
+                                <td><span className={`pdf-tx-type-badge ${t.type}`}>{t.type}</span></td>
+                              </>
+                            )}
                           </tr>
                         ))}
                       </tbody>

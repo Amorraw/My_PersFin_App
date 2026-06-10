@@ -650,6 +650,84 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
   }
 });
 
+// ── PDF bank statement import: confirm edited preview ───────────────────────
+// POST /api/import/statement/confirm
+// Persists a (possibly user-edited) array of transactions from a previously
+// generated dry-run preview, without re-parsing the original PDF.
+router.post("/statement/confirm", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id;
+    const { accountId, transactions } = req.body;
+
+    if (!accountId) return res.status(400).json({ message: "accountId is required" });
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({ message: "transactions array is required" });
+    }
+
+    const account = await Account.findOne({ _id: accountId, userId });
+    if (!account) return res.status(404).json({ message: "Account not found" });
+
+    // Build dedup key set from existing transactions for this account
+    const existingTxns = await Transaction.find(
+      { userId, accountId },
+      { date: 1, amount: 1, description: 1 }
+    ).lean();
+    const existingKeys = new Set(
+      existingTxns.map(tx => `${new Date(tx.date).toDateString()}-${tx.amount}-${tx.description}`)
+    );
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: { index: number; error: string }[] = [];
+
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i] || {};
+      try {
+        const date = new Date(t.postedDate);
+        const amount = Number(t.amount);
+        const description = String(t.descriptionClean ?? "").trim();
+        const type = t.type === "income" ? "income" : "expense";
+        const category = typeof t.category === "string" && t.category.trim() ? t.category : "Other Living Expenses";
+
+        if (isNaN(date.getTime()) || !isFinite(amount) || amount <= 0 || !description) {
+          errors.push({ index: i, error: "Invalid transaction data" });
+          continue;
+        }
+
+        const dupKey = `${date.toDateString()}-${amount}-${description}`;
+        if (existingKeys.has(dupKey)) { skipped++; continue; }
+
+        await Transaction.create({
+          userId,
+          accountId,
+          type,
+          amount,
+          description,
+          category,
+          date,
+          source: "pdf",
+        });
+        imported++;
+        existingKeys.add(dupKey); // prevent same-batch dupes
+      } catch (err: any) {
+        errors.push({ index: i, error: err.message });
+      }
+    }
+
+    return res.json({
+      message: "PDF import completed",
+      imported,
+      skipped,
+      total: transactions.length,
+      errors: errors.length,
+      errorDetails: errors,
+    });
+  } catch (err: any) {
+    console.error("PDF import confirm error:", err);
+    return res.status(500).json({ message: "Server error during PDF import" });
+  }
+});
+
 // Get CSV template
 router.get("/template", (req: Request, res: Response) => {
   const template = `DATE,DESCRIPTION,DEBIT,CREDIT,BALANCE
