@@ -18,6 +18,7 @@ export interface IBankConnection extends Document {
   institutionId: string;
   institutionName: string;
   institutionLogo?: string;
+  /** AES-256-GCM ciphertext (see utils/crypto.ts) — never store/use this raw, call getAccessToken() */
   plaidAccessToken: string;
   plaidItemId: string;
   plaidCursor?: string;

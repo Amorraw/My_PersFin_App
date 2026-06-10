@@ -10,6 +10,10 @@ passport.use(
     { usernameField: "email", passwordField: "password" },
     async (email, password, done) => {
       try {
+        if (typeof email !== "string" || typeof password !== "string") {
+          return done(null, false, { message: "Invalid email or password" });
+        }
+
         const user = await User.findOne({ email });
         if (!user) return done(null, false, { message: "Invalid email or password" });
 

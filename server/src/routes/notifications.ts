@@ -1,14 +1,10 @@
 import { Router, Request, Response } from "express";
 import Notification from "../models/Notification";
 import { runAlertEngine } from "../jobs/alertEngine";
+import { requireAuth } from "../middleware/requireLogin";
 import mongoose from "mongoose";
 
 const router = Router();
-
-function requireAuth(req: Request, res: Response, next: Function) {
-  if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
-  next();
-}
 
 function userId(req: Request): mongoose.Types.ObjectId {
   return (req.user as any)._id;

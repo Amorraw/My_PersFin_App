@@ -46,6 +46,9 @@ export default function Reports() {
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
   const handlePrint = () => {
+    // Safe to write into the new window: everything under printRef is plain JSX
+    // text interpolation (no dangerouslySetInnerHTML), so React has already
+    // HTML-escaped any user data by the time innerHTML is read here.
     const content = printRef.current?.innerHTML ?? "";
     const title = REPORT_META[activeReport].label;
     const win = window.open("", "_blank");

@@ -7,7 +7,8 @@ export interface IUser extends Document {
   firstName?: string;
   lastName?: string;
   province?: string;
-  resetToken?: string;
+  /** SHA-256 hash of the password-reset token (the plaintext token is only ever emailed) */
+  resetTokenHash?: string;
   resetTokenExpires?: Date;
   createdAt: Date;
   demoProfileIndex?: number;   // 1–10 when user has demo data loaded; undefined otherwise
@@ -20,7 +21,7 @@ const userSchema = new Schema<IUser>({
   firstName: String,
   lastName: String,
   province: { type: String, default: "ON" },
-  resetToken: String,
+  resetTokenHash: String,
   resetTokenExpires: Date,
   createdAt: { type: Date, default: Date.now },
   demoProfileIndex:  { type: Number, default: null },

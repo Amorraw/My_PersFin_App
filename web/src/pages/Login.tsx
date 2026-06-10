@@ -21,6 +21,12 @@ export default function Login() {
     setError("");
     setLoading(true);
 
+    if (!isLogin && password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setLoading(false);
+      return;
+    }
+
     try {
       if (isLogin) {
         await login(email, password);

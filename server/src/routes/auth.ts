@@ -3,36 +3,56 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import passport from "passport";
+import rateLimit from "express-rate-limit";
 import { User } from "../models/User";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../utils/email";
+import { hashToken } from "../utils/crypto";
 
 const router = Router();
 
-// POST /register — create a new user account and auto-login
-router.post("/register", async (req, res, next) => {
-  try {
-    console.log("Register endpoint hit with body:", req.body);
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+const MIN_PASSWORD_LENGTH = 8;
 
-    console.log("Checking for existing user with email:", email);
+// Throttle credential-guessing endpoints (login, register, reset-password)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please try again later." },
+});
+
+// Stricter limit for password-reset emails to prevent inbox bombing of other users
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please try again later." },
+});
+
+// POST /register — create a new user account and auto-login
+router.post("/register", authLimiter, async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Email and password required" });
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already used" });
 
-    console.log("Hashing password...");
     const passwordHash = await bcrypt.hash(password, 10);
-    console.log("Creating user...");
     const user = await User.create({ email, passwordHash });
-    console.log("User created:", user.id);
 
-    console.log("Logging in user...");
     req.login(user, err => {
       if (err) {
         console.error("Login error during registration:", err);
         return next(err);
       }
-      console.log("Registration successful for user:", user.id);
       res.json({
         user: {
           id: user.id,
@@ -51,14 +71,13 @@ router.post("/register", async (req, res, next) => {
 });
 
 // POST /login — authenticate with email/password via Passport local strategy
-router.post("/login", (req, res, next) => {
+router.post("/login", authLimiter, (req, res, next) => {
   passport.authenticate("local", (err: any, user: any, info: any) => {
     if (err) {
       console.error("Login error:", err);
       return next(err);
     }
     if (!user) {
-      console.log("Login failed:", info);
       return res.status(401).json({ message: info?.message || "Invalid credentials" });
     }
     req.login(user, (err) => {
@@ -66,7 +85,6 @@ router.post("/login", (req, res, next) => {
         console.error("Session creation error:", err);
         return next(err);
       }
-      console.log("Login successful, user:", user);
       res.json({ user: { id: user.id || user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, province: user.province || "ON", demoProfileIndex: user.demoProfileIndex ?? null } });
     });
   })(req, res, next);
@@ -133,10 +151,12 @@ router.put("/profile", async (req, res, next) => {
 });
 
 // POST /forgot-password — send a one-hour password reset link to the user's email
-router.post("/forgot-password", async (req, res, next) => {
+router.post("/forgot-password", passwordResetLimiter, async (req, res, next) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required" });
+    if (typeof email !== "string" || !email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -148,7 +168,7 @@ router.post("/forgot-password", async (req, res, next) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
-    user.resetToken = resetToken;
+    user.resetTokenHash = hashToken(resetToken);
     user.resetTokenExpires = resetTokenExpires;
     await user.save();
 
@@ -162,15 +182,18 @@ router.post("/forgot-password", async (req, res, next) => {
 });
 
 // POST /reset-password — validate token and replace the user's password
-router.post("/reset-password", async (req, res, next) => {
+router.post("/reset-password", authLimiter, async (req, res, next) => {
   try {
     const { token, password } = req.body;
-    if (!token || !password) {
+    if (typeof token !== "string" || typeof password !== "string" || !token || !password) {
       return res.status(400).json({ message: "Token and password are required" });
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
 
     const user = await User.findOne({
-      resetToken: token,
+      resetTokenHash: hashToken(token),
       resetTokenExpires: { $gt: new Date() }
     });
 
@@ -181,7 +204,7 @@ router.post("/reset-password", async (req, res, next) => {
     // Hash new password
     const passwordHash = await bcrypt.hash(password, 10);
     user.passwordHash = passwordHash;
-    user.resetToken = undefined;
+    user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
     await user.save();
 

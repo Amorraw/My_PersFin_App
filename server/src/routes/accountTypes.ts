@@ -28,6 +28,7 @@ router.post("/rrsp/create", async (req, res) => {
     const { accountName, isAccountOwner } = req.body;
     const userId = (req.user as any).id;
     const account = new RRSPAccount({
+      userId,
       accountName,
       isAccountOwner: isAccountOwner ?? true,
     });
@@ -51,8 +52,8 @@ router.get("/rrsp", async (req, res) => {
 router.get("/rrsp/:id", async (req, res) => {
   try {
     const userId = (req.user as any).id;
-    const account = await RRSPAccount.findById(req.params.id);
-    if (!account || account.userId.toString() !== userId) {
+    const account = await RRSPAccount.findOne({ _id: req.params.id, userId });
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
     res.json(account);
@@ -65,11 +66,11 @@ router.post("/rrsp/:id/contribution", async (req, res) => {
   try {
     const { amount, year } = req.body;
     const userId = (req.user as any).id;
-    const account = await RRSPAccount.findById(req.params.id);
-    if (!account || account.userId.toString() !== userId) {
+    const account = await RRSPAccount.findOne({ _id: req.params.id, userId });
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
-    
+
     const availableRoom = calculateRRSPContributionRoom(
       100000, // Default assumed income
       account.currentYearUsed,
@@ -204,11 +205,11 @@ router.get("/rrif", async (req, res) => {
 router.post("/rrif/:id/minimum-withdrawal", async (req, res) => {
   try {
     const userId = (req.user as any).id;
-    const account = await RRIFAccount.findById(req.params.id);
-    if (!account || account.userId.toString() !== userId) {
+    const account = await RRIFAccount.findOne({ _id: req.params.id, userId });
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
-    
+
     const minWithdrawal = calculateRRIFMinimumWithdrawal(account.ownerAge, account.balance);
     res.json({ minimumWithdrawal: minWithdrawal, percentage: account.minimumWithdrawalPercentage });
   } catch (err) {
@@ -324,8 +325,8 @@ router.get("/rdsp", async (req, res) => {
 router.get("/rdsp/:id", async (req, res) => {
   try {
     const userId = (req.user as any).id;
-    const account = await RDSPAccount.findById(req.params.id);
-    if (!account || account.userId.toString() !== userId) {
+    const account = await RDSPAccount.findOne({ _id: req.params.id, userId });
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
     res.json(account);
@@ -338,9 +339,9 @@ router.post("/rdsp/:id/contribution", async (req, res) => {
   try {
     const { amount, type } = req.body;
     const userId = (req.user as any).id;
-    const account = await RDSPAccount.findById(req.params.id);
+    const account = await RDSPAccount.findOne({ _id: req.params.id, userId });
 
-    if (!account || account.userId.toString() !== userId) {
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
 
@@ -385,9 +386,9 @@ router.post("/rdsp/:id/grant", async (req, res) => {
   try {
     const { amount, grantType } = req.body;
     const userId = (req.user as any).id;
-    const account = await RDSPAccount.findById(req.params.id);
+    const account = await RDSPAccount.findOne({ _id: req.params.id, userId });
 
-    if (!account || account.userId.toString() !== userId) {
+    if (!account) {
       return res.status(404).json({ error: "Account not found" });
     }
 

@@ -9,7 +9,9 @@ import multer from "multer";
 import { parse } from "csv-parse/sync";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+// Cap upload size at 20MB (matches the PDF statement size check below) so multer
+// rejects oversized files before buffering them fully into memory.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const LIABILITY_TYPES = new Set([
   "credit-card",
   "line-of-credit",
@@ -52,12 +54,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
         normalizedSkipDuplicateIds = [];
       }
     }
-    // Debug logging
-    console.log("Upload request received:");
-    console.log("File:", req.file ? `${req.file.originalname} (${req.file.size} bytes)` : "No file");
-    console.log("DryRun:", normalizedDryRun);
-    console.log("SkipDuplicateIds:", normalizedSkipDuplicateIds);
-
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
@@ -97,7 +93,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       const headers = detectedCols.map(h => h.toLowerCase()).join(", ");
       console.error(`[IMPORT ERROR] CSV format not detected for account ${accountId}`);
       console.error(`[IMPORT ERROR] Detected columns: ${headers}`);
-      console.error(`[IMPORT ERROR] First row:`, records[0]);
       return res.status(400).json({ 
         message: "Unable to detect CSV format. Expected columns: DATE, DESCRIPTION (or DESCIPTION), and either AMOUNT or both DEBIT and CREDIT.",
         detectedColumns: detectedCols,
@@ -185,8 +180,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       try {
         const saved = await Transaction.create(record.transaction);
         importedTransactions.push(saved);
-        
-        console.log(`[IMPORT] Created transaction: ${record.transaction.description} - ${record.transaction.type} $${record.transaction.amount}`);
 
         // Update account balance
         if (record.transaction.type === "income") {
@@ -202,10 +195,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
 
     // Update account balance once
     // For credit cards, reverse the balance change (debits increase what you owe, credits decrease it)
-    console.log(`[IMPORT] Account type: ${account.type}`);
-    console.log(`[IMPORT] Balance change from transactions: ${accountBalanceChange}`);
-    console.log(`[IMPORT] Previous balance: ${account.balance}`);
-
     const latestStatementBalance = LIABILITY_TYPES.has(account.type)
       ? await getLatestImportedStatementBalance(userId, accountId)
       : null;
@@ -218,7 +207,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       account.balance += accountBalanceChange;
     }
 
-    console.log(`[IMPORT] New balance: ${account.balance}`);
     await account.save();
 
     return res.json({
@@ -569,9 +557,6 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
         message: "This PDF appears to be scanned (image-only). Machine-readable PDFs exported from your bank's online portal work best."
       });
     }
-
-    // Log extracted text to help diagnose layout issues
-    console.log(`[PDF IMPORT] Extracted ${pdfText.length} chars. First 3000:\n${pdfText.slice(0, 3000)}`);
 
     // Parse statement
     const result = parseStatement(pdfText);

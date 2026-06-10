@@ -8,6 +8,7 @@ import { plaidClient } from "../lib/plaidClient";
 import { BankConnection } from "../models/BankConnection";
 import { Transaction } from "../models/Transaction";
 import { Account } from "../models/Account";
+import { encrypt, decrypt, isEncrypted } from "../utils/crypto";
 import mongoose from "mongoose";
 
 const router = Router();
@@ -19,6 +20,12 @@ function requireAuth(req: Request, res: Response, next: Function) {
 
 function uid(req: Request): mongoose.Types.ObjectId {
   return (req.user as any)._id;
+}
+
+// Plaid access tokens are stored encrypted; this also tolerates connections
+// created before encryption was added (their tokens are still plaintext).
+function getAccessToken(conn: InstanceType<typeof BankConnection>): string {
+  return isEncrypted(conn.plaidAccessToken) ? decrypt(conn.plaidAccessToken) : conn.plaidAccessToken;
 }
 
 // Map Plaid category to app category
@@ -110,7 +117,7 @@ router.post("/exchange-token", requireAuth, async (req: Request, res: Response) 
       userId:          uid(req),
       institutionId:   institutionId ?? item_id,
       institutionName: institutionName ?? "Connected Bank",
-      plaidAccessToken: access_token,
+      plaidAccessToken: encrypt(access_token),
       plaidItemId:     item_id,
       accounts:        plaidAccounts,
       status:          "active",
@@ -191,7 +198,7 @@ router.delete("/connections/:connectionId", requireAuth, async (req: Request, re
 
   try {
     // Remove the Item from Plaid (revokes access token)
-    await plaidClient.itemRemove({ access_token: conn.plaidAccessToken });
+    await plaidClient.itemRemove({ access_token: getAccessToken(conn) });
   } catch {
     // Continue even if Plaid call fails (token may already be invalid)
   }
@@ -226,7 +233,7 @@ async function syncTransactionsForConnection(
 
   while (hasMore) {
     const response = await plaidClient.transactionsSync({
-      access_token: conn.plaidAccessToken,
+      access_token: getAccessToken(conn),
       cursor,
       count: 500,
       options: { include_personal_finance_category: false },
