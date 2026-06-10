@@ -24,7 +24,7 @@ const PDFJS_ROOT = path.dirname(require.resolve("pdfjs-dist/package.json"));
 const STANDARD_FONT_DATA_URL = path.join(PDFJS_ROOT, "standard_fonts") + path.sep;
 const CMAP_URL = path.join(PDFJS_ROOT, "cmaps") + path.sep;
 
-interface PositionedItem {
+export interface PositionedItem {
   str: string;
   x: number;
   y: number;
@@ -36,7 +36,7 @@ interface PositionedItem {
 // reconstructing whitespace so columns that were rendered far apart on the page
 // stay visually separated in the extracted text — exactly what the line-based
 // statement parsers (date-anchored blocks, amount columns) expect.
-function reconstructLayout(items: PositionedItem[]): string {
+export function reconstructLayout(items: PositionedItem[]): string {
   if (items.length === 0) return "";
 
   const Y_TOLERANCE = 2;
@@ -56,17 +56,36 @@ function reconstructLayout(items: PositionedItem[]): string {
 
     let text = "";
     let prevEnd: number | null = null;
+    let prevItem: PositionedItem | null = null;
     for (const item of line) {
-      const charWidth = (item.height || 10) * 0.5;
-      if (prevEnd !== null) {
+      if (prevEnd !== null && prevItem) {
         const gap = item.x - prevEnd;
-        if (gap > charWidth * 0.3) {
+        // Estimate the natural glyph advance width from the actual rendered
+        // width of the surrounding items — more reliable than guessing from
+        // font height, since some bank statement PDFs use condensed fonts
+        // where glyphs are much narrower than the line height.
+        const widths = [prevItem, item]
+          .filter(it => it.str.trim().length > 0)
+          .map(it => it.width / it.str.length)
+          .filter(w => w > 0);
+        const charWidth = widths.length > 0
+          ? widths.reduce((a, b) => a + b, 0) / widths.length
+          : (item.height || 10) * 0.5;
+
+        // Several bank statement PDFs render every word/number as a run of
+        // small glyph-clusters separated by ordinary kerning gaps roughly
+        // one character wide. Only gaps clearly larger than a single
+        // character are treated as real word/column boundaries — anything
+        // smaller is joined with no space, avoiding "SHE LBO URN E" style
+        // fragmentation of words and "2 7. 7 1" fragmentation of numbers.
+        if (gap > charWidth * 1.8) {
           const spaces = Math.min(20, Math.max(1, Math.round(gap / charWidth)));
           text += " ".repeat(spaces);
         }
       }
       text += item.str;
       prevEnd = item.x + item.width;
+      prevItem = item;
     }
     out.push(text.replace(/\s+$/, ""));
   }

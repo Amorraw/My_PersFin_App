@@ -467,8 +467,10 @@ function parseGenericLines(text: string, yearHint: number): ParsedTransaction[] 
 // account-reference numbers (which are typically 7+ digits).
 
 function isTDConcatenatedFormat(text: string): boolean {
-  // Distinctive column header with no spaces between column names
-  return /DescriptionWithdrawalsDepositsDateBalance/i.test(text);
+  // Distinctive column header — column names are normally concatenated with
+  // no spaces, but allow optional whitespace in case layout reconstruction
+  // leaves a stray space at a column boundary.
+  return /Description\s*Withdrawals\s*Deposits\s*Date\s*Balance/i.test(text);
 }
 
 function parseTDConcatenated(text: string): ParsedTransaction[] {
@@ -491,10 +493,12 @@ function parseTDConcatenated(text: string): ParsedTransaction[] {
   // ── Skip-line patterns for TD page furniture ──
   const SKIP_RE = /^(Description|Balance|Starting|Openingbalance|Balanceforward|Closingbalance|Account|Transaction|Statement|Branch|Page|Selfserve|Fullserve|Minimum\$|Feeswaivedfeespaid|Accountissuedby|Foryour|Youraccountcan|Avoidchoosing|Memorizeyour|Neverrecord|Tel:|TTY:|1-8[06]|www\.|4,|3,|2,|1,)/i;
 
-  // Conservative amount: ≤4 digits before decimal avoids matching 7-digit account refs
-  const AMT_RE = /\d{1,4}(?:,\d{3})*\.\d{2}/g;
-  // TD embedded date: uppercase MON + 2-digit day
-  const DATE_RE = /(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})/g;
+  // Conservative amount: ≤4 digits before decimal avoids matching 7-digit account refs.
+  // Allow an optional stray space around the decimal/thousands separators in case a
+  // column-boundary gap landed inside a number.
+  const AMT_RE = /\d{1,4}(?:\s?,\s?\d{3})*\s?\.\s?\d{2}/g;
+  // TD embedded date: uppercase MON + 2-digit day, with an optional stray space between them
+  const DATE_RE = /(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s?(\d{2})/g;
 
   const results: ParsedTransaction[] = [];
 
@@ -513,7 +517,7 @@ function parseTDConcatenated(text: string): ParsedTransaction[] {
     // Use the LAST date occurrence as posting date (handles "JAN03IDPPURREV…JAN14" edge case)
     const lastDate   = dateMatches[dateMatches.length - 1];
     const dateStart  = lastDate.index;
-    const dateEnd    = dateStart + 5; // "JAN02" = 5 chars
+    const dateEnd    = dateStart + lastDate[0].length; // "JAN02" = 5 chars (or 6 with a stray space)
 
     const monthStr   = lastDate[1].toLowerCase();
     const monthPad   = MONTH_MAP[monthStr] || "01";
@@ -540,12 +544,12 @@ function parseTDConcatenated(text: string): ParsedTransaction[] {
     // Sanity check: TD refs ending in a digit bleed into the amount (e.g. "rG3" + "1,026.00").
     // While the parsed amount exceeds $9,999 (unlikely for a single e-transfer), strip
     // the leading digit(s) that came from the reference until the value is plausible.
-    let amount = parseFloat(rawAmtStr.replace(/,/g, ""));
+    let amount = parseFloat(rawAmtStr.replace(/[\s,]/g, ""));
     while (amount > 9999.99) {
       const firstChar = rawAmtStr.match(/^(\d,?)/);
       if (!firstChar) break;
       const stripped = rawAmtStr.slice(firstChar[1].length);
-      const newAmt   = parseFloat(stripped.replace(/,/g, ""));
+      const newAmt   = parseFloat(stripped.replace(/[\s,]/g, ""));
       if (!isFinite(newAmt) || newAmt <= 0) break;
       txnAmtIdx += firstChar[1].length;
       rawAmtStr  = stripped;
@@ -562,7 +566,7 @@ function parseTDConcatenated(text: string): ParsedTransaction[] {
     if (!descRaw || descRaw.length < 2) continue;
 
     // Strip a leading embedded date (e.g. "JAN03" from "JAN03IDPPURREV…")
-    descRaw = descRaw.replace(/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\d{2}/i, "").trim();
+    descRaw = descRaw.replace(/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s?\d{2}/i, "").trim();
     if (!descRaw || descRaw.length < 2) continue;
 
     // Skip known summary lines that survived the first filter
