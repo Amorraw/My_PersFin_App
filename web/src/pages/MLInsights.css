@@ -139,6 +139,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Forecast header: title spans columns 1-2, select sits in column 3 (left-aligned) */

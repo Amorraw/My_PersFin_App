@@ -390,9 +390,16 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 10px;
   box-shadow: var(--shadow);
+}
+
+/* ── TABLE RESPONSIVE WRAPPER (opt-in horizontal scroll) ─────────────────── */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── ERROR MESSAGE ───────────────────────────────────────────────────────── */
@@ -436,6 +443,10 @@
     align-items: flex-start;
   }
 
+  .page-header-actions {
+    width: 100%;
+  }
+
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -446,5 +457,25 @@
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .row {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .card-actions {
+    width: 100%;
   }
 }

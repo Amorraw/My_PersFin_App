@@ -270,7 +270,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .rt-table {
@@ -388,4 +389,18 @@
   background: #450a0a;
   color: #fca5a5;
   border-color: #991b1b;
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .rt-header-actions,
+  .rt-detect-actions {
+    flex-wrap: wrap;
+  }
+
+  .rt-pattern-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 6px;
+  }
 }

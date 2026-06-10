@@ -193,3 +193,18 @@
   border-radius: 3px;
   border: 1px solid var(--border);
 }
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 480px) {
+  .heatmap-tooltip {
+    left: 12px;
+    right: 12px;
+    bottom: 70px;
+    min-width: 0;
+    width: auto;
+  }
+
+  .heatmap-calendar-grid {
+    grid-template-columns: 1fr;
+  }
+}
