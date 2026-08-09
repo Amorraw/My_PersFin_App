@@ -1,3 +1,4 @@
+// Mongoose schema for financial goals with target amount, date, and progress tracking
 import mongoose from 'mongoose';
 
 export interface IGoal extends mongoose.Document {

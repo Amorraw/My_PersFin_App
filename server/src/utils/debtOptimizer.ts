@@ -1,8 +1,5 @@
+// Debt payoff calculators: avalanche, snowball, hybrid, consolidation, and mortgage acceleration
 import { IDebt } from "../models/Debt";
-
-/**
- * Canadian Debt Payoff Optimization Utilities
- */
 
 export interface DebtForCalculation {
   _id: any;
@@ -60,10 +57,9 @@ export interface MonthlyPayment {
   remainingDebt: number;
 }
 
-/**
- * AVALANCHE METHOD: Pay highest interest rate first
- * Mathematically saves the most interest
- */
+// ── Payoff Strategies ────────────────────────────────────────────────────────
+
+// Sort by highest interest rate and run payoff simulation
 export function calculateAvalancheStrategy(
   debts: DebtForCalculation[],
   monthlyExtraPayment: number = 0,
@@ -82,10 +78,7 @@ export function calculateAvalancheStrategy(
   );
 }
 
-/**
- * SNOWBALL METHOD: Pay lowest balance first
- * Psychological wins, faster debt elimination
- */
+// Sort by lowest balance first for quicker psychological wins
 export function calculateSnowballStrategy(
   debts: DebtForCalculation[],
   monthlyExtraPayment: number = 0,
@@ -104,11 +97,7 @@ export function calculateSnowballStrategy(
   );
 }
 
-/**
- * HYBRID/WEIGHTED METHOD: Balance between interest savings and psychological wins
- * Factor in both interest rate AND balance
- * Weight: 0 = pure snowball, 100 = pure avalanche
- */
+// Blend avalanche and snowball via a 0–100 weighting (50 = balanced)
 export function calculateHybridStrategy(
   debts: DebtForCalculation[],
   monthlyExtraPayment: number = 0,
@@ -126,7 +115,7 @@ export function calculateHybridStrategy(
     // Normalize balance (relative to max)
     const normalizedBalance = plain.currentBalance / maxBalance;
 
-    // Weight: avalanche weight (interest) + snowball weight (balance)
+    // Combine normalized interest and balance scores with user-supplied weighting
     const avalancheWeight = (weighting / 100) * normalizedRate;
     const snowballWeight = ((100 - weighting) / 100) * normalizedBalance;
 
@@ -147,10 +136,9 @@ export function calculateHybridStrategy(
   );
 }
 
-/**
- * DEBT CONSOLIDATION ANALYSIS
- * Compare consolidating all debts vs paying individually
- */
+// ── Consolidation & Mortgage ─────────────────────────────────────────────────
+
+// Compare total interest of keeping individual debts vs a single consolidated loan
 export function analyzeConsolidation(
   debts: DebtForCalculation[],
   consolidationRate: number, // Interest rate if consolidated
@@ -212,10 +200,7 @@ export function analyzeConsolidation(
   };
 }
 
-/**
- * MORTGAGE ACCELERATION STRATEGY
- * Calculate accelerated payoff: bi-weekly, lump sum, or increased payments
- */
+// Model bi-weekly, lump-sum, or increased payment mortgage acceleration
 export function calculateMortgageAcceleration(
   mortgage: DebtForCalculation,
   accelerationMethod: "biweekly" | "lump-sum" | "increased-payment",
@@ -232,8 +217,7 @@ export function calculateMortgageAcceleration(
   let accelerated: PayoffPlan;
 
   if (accelerationMethod === "biweekly") {
-    // Bi-weekly payments accelerate payoff
-    // 26 bi-weekly = 13 extra months of payment per year
+    // 26 bi-weekly payments equal 13 monthly payments, adding one extra per year
     accelerated = calculatePayoffPlan(
       [mortgage],
       mortgage.minimumPayment / 2,
@@ -267,10 +251,7 @@ export function calculateMortgageAcceleration(
   };
 }
 
-/**
- * LUMP SUM PAYMENT OPTIMIZATION
- * Where to apply a lump sum to save most interest
- */
+// Recommend which debt to hit with a lump sum for maximum interest savings
 export function optimizeLumpSumPayment(
   debts: DebtForCalculation[],
   lumpSumAmount: number
@@ -310,7 +291,7 @@ export function optimizeLumpSumPayment(
     highestInterestDebt.interestRate >
     lowestBalanceDebt.interestRate + 5
   ) {
-    // If interest gap > 5%, prioritize highest interest
+    // Gap > 5 pp means interest savings outweigh psychological benefit of clearing a balance
     recommendation = `Apply lump sum to "${highestInterestDebt.name}" (${highestInterestDebt.interestRate}%). Saves $${(
       savingsHighestInterest * 12
     ).toFixed(2)}/year in interest.`;
@@ -329,10 +310,9 @@ export function optimizeLumpSumPayment(
   };
 }
 
-/**
- * EARLY PAYMENT CALCULATOR
- * How long to pay off debt with extra payments
- */
+// ── Utilities ────────────────────────────────────────────────────────────────
+
+// Show months and interest saved by adding an extra monthly payment
 export function calculateEarlyPayoff(
   debt: DebtForCalculation,
   extraMonthlyPayment: number
@@ -363,9 +343,7 @@ export function calculateEarlyPayoff(
   };
 }
 
-/**
- * Core payoff calculation engine
- */
+// Month-by-month payoff simulation used by all strategy functions
 function calculatePayoffPlan(
   debts: DebtForCalculation[],
   monthlyExtraPayment: number,
@@ -431,7 +409,7 @@ function calculatePayoffPlan(
       let payment = Math.min(debt.minimumPayment, remainingExtra);
 
       if (i === 0) {
-        // First debt gets extra payments
+        // Focus all surplus on the priority debt; others receive only their minimum
         payment = Math.min(
           debt.currentBalance + monthlyInterest,
           remainingExtra
@@ -485,9 +463,7 @@ function calculatePayoffPlan(
   };
 }
 
-/**
- * Lump sum payment payoff calculator
- */
+// Simulate mortgage payoff with an annual lump-sum applied each December
 function calculateLumpSumPayoff(
   mortgage: DebtForCalculation,
   annualLumpSum: number
@@ -536,9 +512,7 @@ function calculateLumpSumPayoff(
   };
 }
 
-/**
- * Get debt payoff recommendations
- */
+// Generate human-readable payoff recommendations based on debt profile and income
 export function getDebtRecommendations(
   debts: DebtForCalculation[],
   avalanchePlan: PayoffPlan,

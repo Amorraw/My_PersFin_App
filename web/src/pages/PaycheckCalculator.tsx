@@ -1,7 +1,9 @@
+// Canadian paycheck calculator covering CPP/QPP, EI/QPIP, and all provincial tax rates
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import { api } from "../api";
 import "./PaycheckCalculator.css";
+import { fmtCAD as fmt, fmtPctRatio as fmtPct } from "../utils/formatters";
 
 interface Result {
   gross: number; grossPeriod: number;
@@ -15,11 +17,6 @@ interface Result {
   effectiveRate: number; marginalFed: number; marginalProv: number;
   periodLabel: string; periods: number; isQC: boolean; isSelfEmployed: boolean;
 }
-
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
-const fmtPct = (n: number) => `${(n * 100).toFixed(2)}%`;
 
 const PROVINCES = [
   ["AB","Alberta"],["BC","British Columbia"],["MB","Manitoba"],["NB","New Brunswick"],
@@ -35,6 +32,7 @@ const FREQUENCIES = [
   { value: 12, label: "Monthly (12×/year)" },
 ];
 
+// Renders input panel, calls backend for tax calculation, then shows pay stub table
 export default function PaycheckCalculator() {
   const { user } = useAuth();
 
@@ -50,6 +48,7 @@ export default function PaycheckCalculator() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
 
+  // Normalise per-period input to annual so the backend always receives one figure
   const grossAnnual =
     inputMode === "annual"
       ? Number(grossInput)

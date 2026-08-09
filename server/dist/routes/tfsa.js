@@ -1,4 +1,5 @@
 "use strict";
+// TFSA routes: CRUD for TFSA accounts with CRA annual limits, contribution room, and withdrawal tracking
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const TFSAAccount_1 = require("../models/TFSAAccount");
@@ -53,7 +54,7 @@ function computeSummary(accounts) {
         currentYear,
     };
 }
-// GET /api/tfsa
+// GET / — list all TFSA accounts for the user
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -65,7 +66,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// GET /api/tfsa/summary
+// GET /summary — aggregate balance, this-year limit, prior-year withdrawals, and remaining room
 router.get("/summary", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -77,7 +78,7 @@ router.get("/summary", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/tfsa
+// POST / — create a new TFSA account
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -100,7 +101,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// PUT /api/tfsa/:id
+// PUT /:id — update TFSA account fields
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -115,7 +116,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/tfsa/:id
+// DELETE /:id — remove a TFSA account by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -129,7 +130,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/tfsa/:id/contributions
+// POST /:id/contributions — record a contribution and add it to the account balance
 router.post("/:id/contributions", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -149,7 +150,7 @@ router.post("/:id/contributions", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/tfsa/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a contribution and deduct it from the balance
 router.delete("/:id/contributions/:cid", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -168,7 +169,7 @@ router.delete("/:id/contributions/:cid", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/tfsa/:id/withdrawals
+// POST /:id/withdrawals — record a withdrawal and reduce the account balance
 router.post("/:id/withdrawals", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -188,7 +189,7 @@ router.post("/:id/withdrawals", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/tfsa/:id/withdrawals/:wid
+// DELETE /:id/withdrawals/:wid — remove a withdrawal and restore the amount to the balance
 router.delete("/:id/withdrawals/:wid", async (req, res) => {
     try {
         const userId = req.user.id;

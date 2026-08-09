@@ -1,3 +1,5 @@
+// Bill routes: CRUD for recurring bills with next-payment dates and overdue detection
+
 import { Router } from 'express';
 import { Bill } from '../models/Bill';
 import { requireLogin } from '../middleware/requireLogin';
@@ -5,10 +7,7 @@ import { requireLogin } from '../middleware/requireLogin';
 const router = Router();
 router.use(requireLogin);
 
-/**
- * GET /bills
- * Get all bills for the user
- */
+// GET / — list bills optionally filtered by status, with next payment and overdue flag
 router.get('/', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -34,10 +33,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-/**
- * POST /bills
- * Create a new bill
- */
+// POST / — create a new recurring bill
 router.post('/', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -80,11 +76,8 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-/**
- * GET /bills/summary
- * Get bills summary (total monthly, upcoming, etc.)
- * MUST be before /:id so Express doesn't treat "summary" as an id.
- */
+// GET /summary — monthly total, spend by category, and next 5 upcoming bill dates
+// Must be declared before /:id so Express doesn't treat "summary" as an ID.
 router.get('/summary', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -124,10 +117,7 @@ router.get('/summary', async (req, res, next) => {
   }
 });
 
-/**
- * GET /bills/:id
- * Get a specific bill
- */
+// GET /:id — fetch a single bill with next payment date and overdue status
 router.get('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -150,10 +140,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * PUT /bills/:id
- * Update a bill
- */
+// PUT /:id — update bill fields
 router.put('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -188,10 +175,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * DELETE /bills/:id
- * Delete a bill
- */
+// DELETE /:id — remove a bill by ID
 router.delete('/:id', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
@@ -207,10 +191,7 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * PATCH /bills/:id/status
- * Update bill status
- */
+// PATCH /:id/status — change a bill's status to active, paused, or cancelled
 router.patch('/:id/status', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;

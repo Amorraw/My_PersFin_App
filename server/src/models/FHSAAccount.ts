@@ -1,3 +1,4 @@
+// Mongoose schema for FHSA accounts with opened year and annual contribution history
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IFHSAAccount extends Document {

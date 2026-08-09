@@ -1,4 +1,5 @@
 "use strict";
+// Account routes: CRUD for user financial accounts with auto-balance recalculation
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const Account_1 = require("../models/Account");
@@ -37,7 +38,7 @@ async function getRecalculatedAccountBalance(userId, accountId, accountType) {
 }
 // All routes require authentication
 router.use(requireLogin_1.requireAuth);
-// Get all accounts for the logged-in user
+// GET / — list all accounts; auto-corrects each balance from transaction history
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -57,7 +58,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Get single account
+// GET /:id — fetch a single account by ID
 router.get("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -72,7 +73,7 @@ router.get("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Create new account
+// POST / — create a new account for the logged-in user
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -95,7 +96,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Update account
+// PUT /:id — update account fields (name, type, balance, etc.)
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -111,7 +112,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Delete account
+// DELETE /:id — remove an account by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -126,7 +127,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// Recalculate all credit card balances from transactions
+// POST /recalculate-credit-card-balances — recompute all credit card balances from transactions
 router.post("/recalculate-credit-card-balances", async (req, res) => {
     try {
         const userId = req.user.id;

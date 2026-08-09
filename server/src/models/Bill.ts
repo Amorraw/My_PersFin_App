@@ -1,3 +1,4 @@
+// Mongoose schema for recurring bills with frequency, due date, and autopay flag
 import mongoose from 'mongoose';
 
 export interface IBill extends mongoose.Document {

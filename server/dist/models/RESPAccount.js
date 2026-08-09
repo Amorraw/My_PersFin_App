@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RESPAccount = void 0;
+// Mongoose schema for RESP plans with beneficiary list and CESG-tracked contributions
 const mongoose_1 = __importStar(require("mongoose"));
 const respAccountSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

@@ -1,4 +1,5 @@
 "use strict";
+// Insurance routes: life insurance needs (DIME), disability gap analysis, and dental eligibility
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const requireLogin_1 = require("../middleware/requireLogin");
@@ -137,7 +138,7 @@ const PROVINCIAL_GAPS = {
         ambulance: "Covered",
     },
 };
-// ── POST /insurance/life-needs — DIME method ──
+// POST /life-needs — calculate coverage gap using DIME (debts, income, mortgage, education) method
 router.post("/life-needs", (req, res, next) => {
     try {
         const { debts = 0, annualIncome = 0, incomeReplacementYears = 10, mortgageBalance = 0, childrenCount = 0, educationCostPerChild = 50000, groupLifeInsurance = 0, existingPolicies = 0, age = 35, isSmoker = false, } = req.body;
@@ -194,7 +195,7 @@ router.post("/life-needs", (req, res, next) => {
         next(err);
     }
 });
-// ── POST /insurance/disability-gap ──
+// POST /disability-gap — compute monthly LTD shortfall after EI, employer plan, and CPP disability
 router.post("/disability-gap", (req, res, next) => {
     try {
         const { grossMonthlyIncome = 0, employerSTDWeeks = 0, employerSTDPercent = 0, employerLTDPercent = 0, employerLTDOffsetsCPP = true, hasPersonalPolicy = false, personalPolicyMonthly = 0, eligibleForCPPDisability = true, targetReplacementRate = 0.85, } = req.body;
@@ -244,7 +245,7 @@ router.post("/disability-gap", (req, res, next) => {
         next(err);
     }
 });
-// ── POST /insurance/dental-eligibility — CDCP + provincial gaps ──
+// POST /dental-eligibility — check CDCP eligibility and provincial dental coverage gaps
 router.post("/dental-eligibility", (req, res, next) => {
     try {
         const { netFamilyIncome = 0, hasPrivateDentalInsurance = false, age = 35, hasDisability = false, province = "ON", } = req.body;
@@ -291,7 +292,7 @@ router.post("/dental-eligibility", (req, res, next) => {
         next(err);
     }
 });
-// ── GET /insurance/provincial-coverage ──
+// GET /provincial-coverage — return provincial supplementary health coverage gaps for all provinces
 router.get("/provincial-coverage", (_req, res) => {
     res.json({ coverage: PROVINCIAL_GAPS });
 });

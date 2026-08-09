@@ -1,3 +1,4 @@
+// Class component that catches render errors and shows a reload fallback UI
 import type { ErrorInfo, ReactNode } from "react";
 import { Component } from "react";
 

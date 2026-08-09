@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DebtStrategy = void 0;
+// Mongoose schema for saved debt payoff strategies with avalanche/snowball allocations
 const mongoose_1 = __importStar(require("mongoose"));
 const debtStrategySchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

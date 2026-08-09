@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from "react";
+﻿// Full transaction ledger with filtering, pagination, and cash-flow chart
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { api } from "../api";
@@ -35,6 +36,7 @@ function tabForAccountType(accountType: string): AccountTab {
   return "other";
 }
 
+// Renders paginated transaction list with account-type tabs and trend chart
 export default function Transactions() {
   const navigate = useNavigate();
   const { refresh: refreshFinancials } = useFinancialData();
@@ -72,6 +74,7 @@ export default function Transactions() {
     loadData();
   }, []);
 
+  // Refresh on window focus and after CSV import so stale data is never shown
   useEffect(() => {
     const refresh = () => loadData();
     window.addEventListener("focus", refresh);

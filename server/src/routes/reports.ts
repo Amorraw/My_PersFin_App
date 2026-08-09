@@ -4,14 +4,10 @@ import { Budget } from "../models/Budget";
 import { Investment } from "../models/Investment";
 import { TaxAccount } from "../models/TaxAccount";
 import { NetWorthSnapshot } from "../models/NetWorthSnapshot";
+import { requireAuth } from "../middleware/requireLogin";
 import mongoose from "mongoose";
 
 const router = Router();
-
-function requireAuth(req: Request, res: Response, next: Function) {
-  if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
-  next();
-}
 
 function uid(req: Request): mongoose.Types.ObjectId {
   return (req.user as any)._id;

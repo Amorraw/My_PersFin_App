@@ -8,30 +8,21 @@ exports.calculateMortgageAcceleration = calculateMortgageAcceleration;
 exports.optimizeLumpSumPayment = optimizeLumpSumPayment;
 exports.calculateEarlyPayoff = calculateEarlyPayoff;
 exports.getDebtRecommendations = getDebtRecommendations;
-/**
- * AVALANCHE METHOD: Pay highest interest rate first
- * Mathematically saves the most interest
- */
+// ── Payoff Strategies ────────────────────────────────────────────────────────
+// Sort by highest interest rate and run payoff simulation
 function calculateAvalancheStrategy(debts, monthlyExtraPayment = 0, months = 360 // 30 years
 ) {
     // Sort by interest rate (highest first)
     const sorted = [...debts].sort((a, b) => b.interestRate - a.interestRate);
     return calculatePayoffPlan(sorted, monthlyExtraPayment, "avalanche", months);
 }
-/**
- * SNOWBALL METHOD: Pay lowest balance first
- * Psychological wins, faster debt elimination
- */
+// Sort by lowest balance first for quicker psychological wins
 function calculateSnowballStrategy(debts, monthlyExtraPayment = 0, months = 360) {
     // Sort by balance (lowest first)
     const sorted = [...debts].sort((a, b) => a.currentBalance - b.currentBalance);
     return calculatePayoffPlan(sorted, monthlyExtraPayment, "snowball", months);
 }
-/**
- * HYBRID/WEIGHTED METHOD: Balance between interest savings and psychological wins
- * Factor in both interest rate AND balance
- * Weight: 0 = pure snowball, 100 = pure avalanche
- */
+// Blend avalanche and snowball via a 0–100 weighting (50 = balanced)
 function calculateHybridStrategy(debts, monthlyExtraPayment = 0, weighting = 50, // 0-100
 months = 360) {
     // Calculate weighted score for each debt
@@ -41,7 +32,7 @@ months = 360) {
         // Normalize balance (relative to max)
         const maxBalance = Math.max(...debts.map((d) => d.currentBalance));
         const normalizedBalance = debt.currentBalance / maxBalance;
-        // Weight: avalanche weight (interest) + snowball weight (balance)
+        // Combine normalized interest and balance scores with user-supplied weighting
         const avalancheWeight = (weighting / 100) * normalizedRate;
         const snowballWeight = ((100 - weighting) / 100) * normalizedBalance;
         return {
@@ -53,10 +44,8 @@ months = 360) {
     const sorted = withScores.sort((a, b) => b.hybridScore - a.hybridScore);
     return calculatePayoffPlan(sorted, monthlyExtraPayment, `hybrid-${weighting}`, months);
 }
-/**
- * DEBT CONSOLIDATION ANALYSIS
- * Compare consolidating all debts vs paying individually
- */
+// ── Consolidation & Mortgage ─────────────────────────────────────────────────
+// Compare total interest of keeping individual debts vs a single consolidated loan
 function analyzeConsolidation(debts, consolidationRate, // Interest rate if consolidated
 consolidationFee = 0, // One-time fee
 monthlyExtraPayment = 0) {
@@ -95,18 +84,14 @@ monthlyExtraPayment = 0) {
         consolidatedMonthlyPayment: consolidated.monthlyPayment,
     };
 }
-/**
- * MORTGAGE ACCELERATION STRATEGY
- * Calculate accelerated payoff: bi-weekly, lump sum, or increased payments
- */
+// Model bi-weekly, lump-sum, or increased payment mortgage acceleration
 function calculateMortgageAcceleration(mortgage, accelerationMethod, accelerationAmount = 0 // Extra monthly payment or annual lump sum
 ) {
     // Standard mortgage payment plan
     const standard = calculatePayoffPlan([mortgage], 0, "standard", 360);
     let accelerated;
     if (accelerationMethod === "biweekly") {
-        // Bi-weekly payments accelerate payoff
-        // 26 bi-weekly = 13 extra months of payment per year
+        // 26 bi-weekly payments equal 13 monthly payments, adding one extra per year
         accelerated = calculatePayoffPlan([mortgage], mortgage.minimumPayment / 2, "mortgage-acceleration-biweekly", 360);
     }
     else if (accelerationMethod === "lump-sum") {
@@ -127,10 +112,7 @@ function calculateMortgageAcceleration(mortgage, accelerationMethod, acceleratio
         yearsSaved,
     };
 }
-/**
- * LUMP SUM PAYMENT OPTIMIZATION
- * Where to apply a lump sum to save most interest
- */
+// Recommend which debt to hit with a lump sum for maximum interest savings
 function optimizeLumpSumPayment(debts, lumpSumAmount) {
     if (debts.length === 0) {
         return {
@@ -150,7 +132,7 @@ function optimizeLumpSumPayment(debts, lumpSumAmount) {
     let targetDebt = null;
     if (highestInterestDebt.interestRate >
         lowestBalanceDebt.interestRate + 5) {
-        // If interest gap > 5%, prioritize highest interest
+        // Gap > 5 pp means interest savings outweigh psychological benefit of clearing a balance
         recommendation = `Apply lump sum to "${highestInterestDebt.name}" (${highestInterestDebt.interestRate}%). Saves $${(savingsHighestInterest * 12).toFixed(2)}/year in interest.`;
         targetDebt = highestInterestDebt;
     }
@@ -166,10 +148,8 @@ function optimizeLumpSumPayment(debts, lumpSumAmount) {
         targetDebt,
     };
 }
-/**
- * EARLY PAYMENT CALCULATOR
- * How long to pay off debt with extra payments
- */
+// ── Utilities ────────────────────────────────────────────────────────────────
+// Show months and interest saved by adding an extra monthly payment
 function calculateEarlyPayoff(debt, extraMonthlyPayment) {
     const standardPlan = calculatePayoffPlan([debt], 0, "standard", 360);
     const earlyPlan = calculatePayoffPlan([debt], extraMonthlyPayment, "early", 360);
@@ -185,9 +165,7 @@ function calculateEarlyPayoff(debt, extraMonthlyPayment) {
         newPayoffDate,
     };
 }
-/**
- * Core payoff calculation engine
- */
+// Month-by-month payoff simulation used by all strategy functions
 function calculatePayoffPlan(debts, monthlyExtraPayment, strategyName, maxMonths) {
     const debtsState = debts.map((d) => ({
         ...d,
@@ -230,7 +208,7 @@ function calculatePayoffPlan(debts, monthlyExtraPayment, strategyName, maxMonths
             // Payment: minimum + portion of extra
             let payment = Math.min(debt.minimumPayment, remainingExtra);
             if (i === 0) {
-                // First debt gets extra payments
+                // Focus all surplus on the priority debt; others receive only their minimum
                 payment = Math.min(debt.currentBalance + monthlyInterest, remainingExtra);
             }
             const principal = payment - monthlyInterest;
@@ -272,9 +250,7 @@ function calculatePayoffPlan(debts, monthlyExtraPayment, strategyName, maxMonths
         monthlyBreakdown,
     };
 }
-/**
- * Lump sum payment payoff calculator
- */
+// Simulate mortgage payoff with an annual lump-sum applied each December
 function calculateLumpSumPayoff(mortgage, annualLumpSum) {
     let balance = mortgage.currentBalance;
     let totalInterest = 0;
@@ -313,9 +289,7 @@ function calculateLumpSumPayoff(mortgage, annualLumpSum) {
         monthlyBreakdown: [],
     };
 }
-/**
- * Get debt payoff recommendations
- */
+// Generate human-readable payoff recommendations based on debt profile and income
 function getDebtRecommendations(debts, avalanchePlan, snowballPlan, userIncome = 0) {
     const recommendations = [];
     // Interest analysis

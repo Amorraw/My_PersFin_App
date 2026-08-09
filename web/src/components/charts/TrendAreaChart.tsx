@@ -1,3 +1,4 @@
+// Reusable stacked or overlapping area chart for time-series financial data
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, ReferenceLine,
@@ -24,6 +25,7 @@ interface Props {
   xKey?:        string;
 }
 
+// Renders responsive area chart; shows placeholder when data is empty
 export default function TrendAreaChart({
   data,
   series,
@@ -44,6 +46,7 @@ export default function TrendAreaChart({
     <div style={{ width: "100%", minWidth: 0 }}>
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+        {/* Per-series vertical gradient: opaque at top, near-transparent at bottom */}
         <defs>
           {series.map(s => (
             <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">

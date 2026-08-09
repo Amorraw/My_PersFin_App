@@ -34,7 +34,6 @@
     "nodemailer": "^8.0.7",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pdf-parse": "^1.1.4",
     "pdfjs-dist": "^4.10.38",
     "plaid": "^42.2.0",
     "react-router-dom": "^7.13.1",

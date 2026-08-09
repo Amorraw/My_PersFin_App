@@ -1,3 +1,4 @@
+// Cmd+K spotlight-style modal for navigating to any page by name
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -40,12 +41,14 @@ interface GlobalSearchProps {
   onClose: () => void;
 }
 
+// Filters PAGES by query and supports keyboard arrow/enter navigation
 export default function GlobalSearch({ open, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Show first 8 pages as recents when query is empty; filter by label otherwise
   const results = query.trim()
     ? PAGES.filter((p) => p.label.toLowerCase().includes(query.toLowerCase()))
     : PAGES.slice(0, 8);

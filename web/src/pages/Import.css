@@ -12,6 +12,8 @@
   gap: 0;
   margin-bottom: 20px;
   border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .import-tab-btn {
@@ -713,4 +715,23 @@
   font-size: 0.7rem;
   color: var(--text-light);
   flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 480px) {
+  .dup-modal {
+    padding: 16px;
+    width: 94%;
+  }
+
+  .import-tab-btn {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  .bank-select {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
 }

@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
+// Mongoose schema for app users: credentials, profile, and province preference
 const mongoose_1 = __importStar(require("mongoose"));
 const userSchema = new mongoose_1.Schema({
     email: { type: String, required: true, unique: true, lowercase: true },
@@ -45,5 +46,6 @@ const userSchema = new mongoose_1.Schema({
     resetTokenExpires: Date,
     createdAt: { type: Date, default: Date.now },
     demoProfileIndex: { type: Number, default: null },
+    demoHistoryYears: { type: Number, default: null },
 });
 exports.User = mongoose_1.default.model("User", userSchema);

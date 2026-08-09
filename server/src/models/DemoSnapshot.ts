@@ -1,3 +1,4 @@
+// Mongoose schema for pre-seeded demo data snapshots used in onboarding mode
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDemoSnapshot extends Document {

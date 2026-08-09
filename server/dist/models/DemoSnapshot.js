@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DemoSnapshot = void 0;
+// Mongoose schema for pre-seeded demo data snapshots used in onboarding mode
 const mongoose_1 = __importStar(require("mongoose"));
 const snapshotSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true, unique: true },

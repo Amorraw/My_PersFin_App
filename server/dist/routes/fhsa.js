@@ -1,4 +1,5 @@
 "use strict";
+// FHSA routes: CRUD for First Home Savings Accounts with CRA contribution room tracking
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const FHSA_1 = require("../models/FHSA");
@@ -59,7 +60,7 @@ function computeRoomSummary(accounts) {
         carryForward: Math.round(carryForward * 100) / 100,
     };
 }
-// GET /api/fhsa
+// GET / — list all FHSA accounts for the user
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -71,7 +72,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// GET /api/fhsa/summary
+// GET /summary — aggregate balances and CRA contribution room across all FHSA accounts
 router.get("/summary", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -91,7 +92,7 @@ router.get("/summary", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/fhsa
+// POST / — create a new FHSA account (FHSA program started 2023)
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -118,7 +119,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// PUT /api/fhsa/:id
+// PUT /:id — update FHSA account details
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -133,7 +134,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/fhsa/:id
+// DELETE /:id — remove a FHSA account by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -147,7 +148,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/fhsa/:id/contributions
+// POST /:id/contributions — record a contribution against this FHSA account
 router.post("/:id/contributions", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -167,7 +168,7 @@ router.post("/:id/contributions", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/fhsa/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a specific contribution from a FHSA account
 router.delete("/:id/contributions/:cid", async (req, res) => {
     try {
         const userId = req.user.id;

@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Debt = void 0;
+// Mongoose schema for debts: balance, interest rate, minimum payment, and due schedule
 const mongoose_1 = __importStar(require("mongoose"));
 const debtSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

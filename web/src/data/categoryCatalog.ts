@@ -1,5 +1,7 @@
-﻿import type { CategoryMajor } from "../types";
+﻿// Full Canadian budget category tree used for transaction tagging and budgets
+import type { CategoryMajor } from "../types";
 
+// Converts a display name to a URL-safe dot-path key segment
 const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -14,6 +16,7 @@ const slugify = (value: string) =>
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
+// Builds subcategory list with prefixed keys like "housing-expenses.rent"
 const makeSubcategories = (majorKey: string, names: string[]) =>
   names.map((name) => ({ key: `${majorKey}.${slugify(name)}`, name }));
 

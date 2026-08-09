@@ -1,4 +1,4 @@
-// Canadian Account Types and Rules
+// Canadian registered account rules: contribution limits, withholding rates, CPP/OAS, and capital gains
 
 export const CONTRIBUTION_LIMITS_2024 = {
   RRSP: {
@@ -187,6 +187,9 @@ export const MARGINAL_TAX_RATES_2024 = {
   }
 };
 
+// ── Contribution Room Calculators ────────────────────────────────────────────
+
+// Compute new RRSP room earned this year minus contributions already made
 export function calculateRRSPContributionRoom(
   previousYearIncome: number,
   previousYearContribution: number,
@@ -196,6 +199,7 @@ export function calculateRRSPContributionRoom(
   return Math.max(0, maxContribution - previousYearContribution);
 }
 
+// Delegate to taxPlanner's authoritative annual-limits table for TFSA room
 export function calculateTFSAContributionRoom(
   yearOfBirth: number,
   totalContributionsEver: number,
@@ -210,6 +214,7 @@ export function calculateTFSAContributionRoom(
   return remainingRoom;
 }
 
+// Compute CESG grant (20% of contribution) capped by annual and lifetime maximums
 export function calculateCESG(
   contribution: number,
   previousGrantAmount: number = 0,
@@ -226,11 +231,15 @@ export function calculateCESG(
   return Math.max(0, limitedByLifetime);
 }
 
+// ── Government Benefit Calculators ───────────────────────────────────────────
+
+// Look up CRA's age-based RRIF percentage and apply it to the current balance
 export function calculateRRIFMinimumWithdrawal(age: number, balance: number): number {
   const percentage = RRIF_MINIMUM_WITHDRAWAL_PERCENTAGES[age as keyof typeof RRIF_MINIMUM_WITHDRAWAL_PERCENTAGES] || 0;
   return balance * percentage;
 }
 
+// Estimate monthly CPP adjusted for early (−0.36%/mo) or deferred (+0.42%/mo) claiming age
 export function calculateCPPBenefit(
   yearsOfContribution: number,
   averageInsurableEarnings: number,
@@ -246,13 +255,14 @@ export function calculateCPPBenefit(
     percentage = 1.0 + (claimAge - baseAge) * 0.0042; // 0.42% per month after 65
   }
 
-  // Cap at 70
+  // Deferral gain is capped at age 70 (42% above the age-65 amount)
   percentage = Math.min(percentage, 1.42);
 
   const monthlyBenefit = (averageInsurableEarnings * CPP_RATES_2024.maxMonthly) / 68500;
   return monthlyBenefit * percentage;
 }
 
+// Calculate OAS with 15% clawback above income threshold, plus GIS for low-income seniors
 export function calculateOASWithGIS(income: number, age: number, maritalStatus: "single" | "married" = "single"): {
   oasMonthly: number;
   gisMonthly: number;
@@ -280,12 +290,16 @@ export function calculateOASWithGIS(income: number, age: number, maritalStatus: 
   };
 }
 
+// ── Investment Calculations ──────────────────────────────────────────────────
+
+// Compute average adjusted cost base across all purchase lots
 export function calculateACB(holdings: Array<{ quantity: number; price: number }>): number {
   const totalCost = holdings.reduce((sum, h) => sum + h.quantity * h.price, 0);
   const totalQuantity = holdings.reduce((sum, h) => sum + h.quantity, 0);
   return totalQuantity > 0 ? totalCost / totalQuantity : 0;
 }
 
+// Apply tiered inclusion rates to a sale, respecting prior realised gains this year
 export function calculateCapitalGain(
   purchasePrice: number,
   sellingPrice: number,
@@ -303,6 +317,9 @@ export function calculateCapitalGain(
   return { capitalGain, taxableGain, inclusionRate };
 }
 
+// ── Account Metadata ─────────────────────────────────────────────────────────
+
+// Return a plain-English description for a given registered account type code
 export function getAccountTypeDescription(accountType: string): string {
   const descriptions: { [key: string]: string } = {
     RRSP: "Registered Retirement Savings Plan - Tax-deferred savings, contributions are tax-deductible",

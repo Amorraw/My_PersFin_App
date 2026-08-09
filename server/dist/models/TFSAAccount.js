@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TFSAAccount = void 0;
+// Mongoose schema for TFSA accounts with annual contribution and withdrawal history
 const mongoose_1 = __importStar(require("mongoose"));
 const tfsaAccountSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

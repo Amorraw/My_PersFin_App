@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BankConnection = void 0;
+// Mongoose schema for Plaid bank connections: linked institution, accounts, and sync state
 const mongoose_1 = __importStar(require("mongoose"));
 const PlaidAccountSchema = new mongoose_1.Schema({
     plaidAccountId: { type: String, required: true },

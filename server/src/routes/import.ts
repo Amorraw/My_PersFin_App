@@ -4,13 +4,14 @@ import { Account } from "../models/Account";
 import { requireAuth } from "../middleware/requireLogin";
 import { categorizeTransaction } from "../utils/categorization";
 import { parseStatement } from "../utils/pdfStatementParser";
+import { extractPdfText } from "../utils/pdfTextExtractor";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
-// @ts-ignore — pdf-parse v1.x ships CJS without bundled types; @types/pdf-parse covers it
-import pdfParse from "pdf-parse";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+// Cap upload size at 20MB (matches the PDF statement size check below) so multer
+// rejects oversized files before buffering them fully into memory.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const LIABILITY_TYPES = new Set([
   "credit-card",
   "line-of-credit",
@@ -53,12 +54,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
         normalizedSkipDuplicateIds = [];
       }
     }
-    // Debug logging
-    console.log("Upload request received:");
-    console.log("File:", req.file ? `${req.file.originalname} (${req.file.size} bytes)` : "No file");
-    console.log("DryRun:", normalizedDryRun);
-    console.log("SkipDuplicateIds:", normalizedSkipDuplicateIds);
-
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
@@ -98,7 +93,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       const headers = detectedCols.map(h => h.toLowerCase()).join(", ");
       console.error(`[IMPORT ERROR] CSV format not detected for account ${accountId}`);
       console.error(`[IMPORT ERROR] Detected columns: ${headers}`);
-      console.error(`[IMPORT ERROR] First row:`, records[0]);
       return res.status(400).json({ 
         message: "Unable to detect CSV format. Expected columns: DATE, DESCRIPTION (or DESCIPTION), and either AMOUNT or both DEBIT and CREDIT.",
         detectedColumns: detectedCols,
@@ -186,8 +180,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       try {
         const saved = await Transaction.create(record.transaction);
         importedTransactions.push(saved);
-        
-        console.log(`[IMPORT] Created transaction: ${record.transaction.description} - ${record.transaction.type} $${record.transaction.amount}`);
 
         // Update account balance
         if (record.transaction.type === "income") {
@@ -203,10 +195,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
 
     // Update account balance once
     // For credit cards, reverse the balance change (debits increase what you owe, credits decrease it)
-    console.log(`[IMPORT] Account type: ${account.type}`);
-    console.log(`[IMPORT] Balance change from transactions: ${accountBalanceChange}`);
-    console.log(`[IMPORT] Previous balance: ${account.balance}`);
-
     const latestStatementBalance = LIABILITY_TYPES.has(account.type)
       ? await getLatestImportedStatementBalance(userId, accountId)
       : null;
@@ -219,7 +207,6 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       account.balance += accountBalanceChange;
     }
 
-    console.log(`[IMPORT] New balance: ${account.balance}`);
     await account.save();
 
     return res.json({
@@ -555,11 +542,10 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
     const account = await Account.findOne({ _id: accountId, userId });
     if (!account) return res.status(404).json({ message: "Account not found" });
 
-    // Extract text from PDF
+    // Extract text from PDF (layout-aware: preserves column spacing for table parsing)
     let pdfText: string;
     try {
-      const parsed = await pdfParse(req.file.buffer);
-      pdfText = parsed.text || "";
+      pdfText = await extractPdfText(req.file.buffer);
     } catch {
       return res.status(422).json({
         message: "Could not extract text from this PDF. It may be password-protected, corrupted, or a scanned image. Try exporting a machine-readable PDF from your bank's online portal."
@@ -571,9 +557,6 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
         message: "This PDF appears to be scanned (image-only). Machine-readable PDFs exported from your bank's online portal work best."
       });
     }
-
-    // Log extracted text to help diagnose layout issues
-    console.log(`[PDF IMPORT] Extracted ${pdfText.length} chars. First 3000:\n${pdfText.slice(0, 3000)}`);
 
     // Parse statement
     const result = parseStatement(pdfText);
@@ -648,6 +631,84 @@ router.post("/statement", upload.single("statement"), async (req: Request, res: 
     });
   } catch (err: any) {
     console.error("PDF import error:", err);
+    return res.status(500).json({ message: "Server error during PDF import" });
+  }
+});
+
+// ── PDF bank statement import: confirm edited preview ───────────────────────
+// POST /api/import/statement/confirm
+// Persists a (possibly user-edited) array of transactions from a previously
+// generated dry-run preview, without re-parsing the original PDF.
+router.post("/statement/confirm", async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any).id;
+    const { accountId, transactions } = req.body;
+
+    if (!accountId) return res.status(400).json({ message: "accountId is required" });
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({ message: "transactions array is required" });
+    }
+
+    const account = await Account.findOne({ _id: accountId, userId });
+    if (!account) return res.status(404).json({ message: "Account not found" });
+
+    // Build dedup key set from existing transactions for this account
+    const existingTxns = await Transaction.find(
+      { userId, accountId },
+      { date: 1, amount: 1, description: 1 }
+    ).lean();
+    const existingKeys = new Set(
+      existingTxns.map(tx => `${new Date(tx.date).toDateString()}-${tx.amount}-${tx.description}`)
+    );
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: { index: number; error: string }[] = [];
+
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i] || {};
+      try {
+        const date = new Date(t.postedDate);
+        const amount = Number(t.amount);
+        const description = String(t.descriptionClean ?? "").trim();
+        const type = t.type === "income" ? "income" : "expense";
+        const category = typeof t.category === "string" && t.category.trim() ? t.category : "Other Living Expenses";
+
+        if (isNaN(date.getTime()) || !isFinite(amount) || amount <= 0 || !description) {
+          errors.push({ index: i, error: "Invalid transaction data" });
+          continue;
+        }
+
+        const dupKey = `${date.toDateString()}-${amount}-${description}`;
+        if (existingKeys.has(dupKey)) { skipped++; continue; }
+
+        await Transaction.create({
+          userId,
+          accountId,
+          type,
+          amount,
+          description,
+          category,
+          date,
+          source: "pdf",
+        });
+        imported++;
+        existingKeys.add(dupKey); // prevent same-batch dupes
+      } catch (err: any) {
+        errors.push({ index: i, error: err.message });
+      }
+    }
+
+    return res.json({
+      message: "PDF import completed",
+      imported,
+      skipped,
+      total: transactions.length,
+      errors: errors.length,
+      errorDetails: errors,
+    });
+  } catch (err: any) {
+    console.error("PDF import confirm error:", err);
     return res.status(500).json({ message: "Server error during PDF import" });
   }
 });

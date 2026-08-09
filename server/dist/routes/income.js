@@ -1,4 +1,5 @@
 "use strict";
+// Income routes: Canadian paycheck calculator, CCB/GST benefits, and live CPI data
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -64,7 +65,7 @@ function calcProvincial(taxableIncome, province, cpp, ei) {
     }
     return tax;
 }
-// ── POST /income/paycheck ────────────────────────────────────────────────────
+// POST /paycheck — compute net pay after CPP/QPP, EI, federal and provincial income tax
 router.post("/paycheck", (req, res, next) => {
     try {
         const { grossAnnual, province = "ON", payFrequency = 26, isSelfEmployed = false, rrspContribution = 0, pensionContribution = 0, unionDues = 0, } = req.body;
@@ -114,7 +115,7 @@ router.post("/paycheck", (req, res, next) => {
         next(err);
     }
 });
-// ── POST /income/ccb — Canada Child Benefit 2024-25 ──────────────────────────
+// POST /ccb — estimate annual/monthly Canada Child Benefit based on income and children's ages
 router.post("/ccb", (req, res, next) => {
     try {
         const { netFamilyIncome = 0, children = [] } = req.body;
@@ -147,7 +148,7 @@ router.post("/ccb", (req, res, next) => {
         next(err);
     }
 });
-// ── POST /income/gst-credit — GST/HST Credit 2024 ───────────────────────────
+// POST /gst-credit — estimate annual GST/HST credit and quarterly payment amounts
 router.post("/gst-credit", (req, res, next) => {
     try {
         const { netFamilyIncome = 0, hasSpouse = false, childrenUnder19 = 0 } = req.body;
@@ -176,8 +177,7 @@ router.post("/gst-credit", (req, res, next) => {
         next(err);
     }
 });
-// ── GET /income/cpi — Statistics Canada CPI data ────────────────────────────
-// Tries Bank of Canada Valet API for core inflation; always returns hardcoded category data
+// GET /cpi — return 2024 CPI by category plus live core inflation from Bank of Canada API
 router.get("/cpi", async (_req, res) => {
     // Hardcoded 2024 Statistics Canada CPI (year-over-year % change, approximate 12-month avg)
     const categories = [

@@ -1,3 +1,4 @@
+// Provides session-based auth state (user, login, register, logout) to the app
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { api } from "./api";
@@ -14,6 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Fetches current session on mount and exposes auth actions to children
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Throws if called outside AuthProvider to catch wiring mistakes early
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

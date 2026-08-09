@@ -1,3 +1,4 @@
+// Mongoose schema for saved debt payoff strategies with avalanche/snowball allocations
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDebtStrategy extends Document {

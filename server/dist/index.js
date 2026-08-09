@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Express app entry point: middleware setup, route mounting, and server start
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const express_session_1 = __importDefault(require("express-session"));
@@ -151,6 +152,7 @@ app.use((err, _req, res, _next) => {
     console.error("Error:", err);
     res.status(err.status || 500).json({ message: err.message });
 });
+// Connect to MongoDB then start listening and kick off background jobs
 mongoose_1.default.connect(config_1.MONGO_URI).then(() => {
     console.log("Mongo connected");
     app.listen(config_1.PORT, () => console.log(`API on http://localhost:${config_1.PORT}`));

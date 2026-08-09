@@ -1,3 +1,4 @@
+// App-wide header: search trigger, theme toggle, notifications badge, and user menu
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../AuthContext";
@@ -23,6 +24,7 @@ interface HeaderProps {
   onMenuToggle?: () => void;
 }
 
+// Renders top bar with branding, search, dark-mode toggle, and profile dropdown
 export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -54,6 +56,7 @@ export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
     }
   }
 
+  // Poll unread notification count every 5 minutes without blocking the UI
   useEffect(() => {
     const fetchUnread = async () => {
       try {
@@ -164,10 +167,10 @@ export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
 
       </div>
 
-      {/* Demo profile bar — full-width red strip at the bottom of the header */}
+      {/* Demo profile bar — full-width dark navy strip at the bottom of the header */}
       {hasDemoProfile && (
         <div style={{
-          background: "#dc2626",
+          background: "#0f172a",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -179,7 +182,7 @@ export default function Header({ onSearchOpen, onMenuToggle }: HeaderProps) {
         }}>
           <span style={{
             background: "#fff",
-            color: "#dc2626",
+            color: "#0f172a",
             borderRadius: 4,
             padding: "1px 7px",
             fontSize: "11px",

@@ -1,3 +1,5 @@
+// Debt routes: CRUD, dashboard KPIs, payoff strategy calculators, and account detection
+
 import { Router, Request, Response } from "express";
 import { Debt, IDebt } from "../models/Debt";
 import { Account } from "../models/Account";
@@ -276,7 +278,7 @@ async function calcLiabilityBalance(userId: string, accountId: string): Promise<
 // All routes require authentication
 router.use(requireAuth);
 
-// ── GET /api/debts/dashboard ──────────────────────────────────────────────────
+// GET /dashboard — KPI totals, weighted interest rate, and upcoming due dates (30 days)
 router.get("/dashboard", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -366,7 +368,7 @@ router.get("/dashboard", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts/payoff/strategies ─────────────────────────────────────────
+// GET /payoff/strategies — compare avalanche vs snowball payoff timelines and interest
 router.get("/payoff/strategies", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -410,7 +412,7 @@ router.get("/payoff/strategies", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts/payoff/optimizer ──────────────────────────────────────────
+// GET /payoff/optimizer — allocate a payment budget across debts (avalanche priority)
 router.get("/payoff/optimizer", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -434,7 +436,7 @@ router.get("/payoff/optimizer", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts/payoff/what-if ─────────────────────────────────────────────
+// GET /payoff/what-if — show months and interest saved by adding an extra payment
 router.get("/payoff/what-if", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -471,7 +473,7 @@ router.get("/payoff/what-if", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts/detect-from-accounts ──────────────────────────────────────
+// GET /detect-from-accounts — scan liability accounts and suggest debts not yet imported
 // Must be declared before /:id so Express doesn't treat "detect-from-accounts" as an ID.
 router.get("/detect-from-accounts", async (req: Request, res: Response) => {
   try {
@@ -542,7 +544,7 @@ router.get("/detect-from-accounts", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts ────────────────────────────────────────────────────────────
+// GET / — list all debts for the user, sorted by interest rate descending
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -554,7 +556,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /api/debts/:id ────────────────────────────────────────────────────────
+// GET /:id — fetch a single debt by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -567,7 +569,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /api/debts ───────────────────────────────────────────────────────────
+// POST / — create a new tracked debt
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -594,7 +596,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// ── PUT /api/debts/:id ────────────────────────────────────────────────────────
+// PUT /:id — update debt fields including optional due date and schedule type
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -624,7 +626,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /api/debts/:id/payment ───────────────────────────────────────────────
+// POST /:id/payment — apply a payment amount to reduce a debt's current balance
 router.post("/:id/payment", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
@@ -646,7 +648,7 @@ router.post("/:id/payment", async (req: Request, res: Response) => {
   }
 });
 
-// ── DELETE /api/debts/:id ─────────────────────────────────────────────────────
+// DELETE /:id — remove a tracked debt by ID
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;

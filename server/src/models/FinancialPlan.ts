@@ -1,3 +1,4 @@
+// Mongoose schema for long-term financial plans with goals, assumptions, and projections
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IFinancialPlan extends Document {

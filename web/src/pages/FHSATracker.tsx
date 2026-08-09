@@ -1,5 +1,7 @@
+// FHSA account tracker with annual/lifetime room tracking for first-time buyers
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
+import { fmtMoney as CAD } from "../utils/formatters";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,6 @@ interface FHSASummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 const pct  = (n: number, d: number) => d > 0 ? Math.min(100, Math.round((n / d) * 100)) : 0;
 
 const BLANK_ACCOUNT = { institution: "", accountName: "", openedYear: new Date().getFullYear(), currentBalance: "", notes: "" };
@@ -54,6 +55,7 @@ const RULES = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+// Renders FHSA account cards with contribution modals and carry-forward room display
 export default function FHSATracker() {
   const [accounts, setAccounts]     = useState<FHSAAccount[]>([]);
   const [summary, setSummary]       = useState<FHSASummary | null>(null);
@@ -377,7 +379,7 @@ export default function FHSATracker() {
               />
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setAcctModal(false)} style={{ padding: "10px 20px", border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setAcctModal(false)} style={{ padding: "10px 20px", border: "1px solid #FECACA", borderRadius: 8, background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
               <button onClick={saveAcct} disabled={acctSaving} style={{ padding: "10px 22px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
                 {acctSaving ? "Saving…" : "Save"}
               </button>
@@ -438,7 +440,7 @@ export default function FHSATracker() {
               />
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setContribModal(false)} style={{ padding: "10px 20px", border: "1px solid var(--border)", borderRadius: 8, background: "transparent", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => setContribModal(false)} style={{ padding: "10px 20px", border: "1px solid #FECACA", borderRadius: 8, background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
               <button onClick={saveContrib} disabled={contribSaving} style={{ padding: "10px 22px", background: "#059669", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
                 {contribSaving ? "Saving…" : "Record"}
               </button>

@@ -1,3 +1,4 @@
+// RRSP vs TFSA decision tool: compares after-tax retirement value using real Canadian marginal tax rates
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
@@ -6,6 +7,7 @@ import {
 } from "recharts";
 import "./RRSPvsTFSA.css";
 import { fmtCADShort } from "../components/charts";
+import { fmtCAD as fmt } from "../utils/formatters";
 
 const PROVINCES = [
   { code: "AB", name: "Alberta" },
@@ -52,9 +54,6 @@ interface Result {
   growthTable: Array<{ year: number; rrspValue: number; tfsaValue: number }>;
 }
 
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
 const pct = (n: number) => `${n.toFixed(1)}%`;
 
 const RECOMMENDATION_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
@@ -69,6 +68,7 @@ const STRENGTH_LABEL: Record<string, string> = {
   marginal: "Marginal difference",
 };
 
+// Renders slider inputs, recommendation banner, rate cards, side-by-side comparison, and growth chart
 export default function RRSPvsTFSA() {
   const { user } = useAuth();
 
@@ -309,6 +309,7 @@ export default function RRSPvsTFSA() {
 
 // ── Helper components ──────────────────────────────────────────────────────────
 
+// Labelled range slider with optional hint text
 function Slider({
   label, min, max, step, value, onChange, hint,
 }: {
@@ -325,6 +326,7 @@ function Slider({
   );
 }
 
+// Displays combined marginal rate with federal + provincial breakdown
 function RateCard({
   title, subtitle, combined, federal, provincial, color,
 }: {
@@ -343,6 +345,7 @@ function RateCard({
   );
 }
 
+// Renders RRSP or TFSA path breakdown rows with winner highlight border
 function ComparisonCard({
   title, icon, winner, rows,
 }: {

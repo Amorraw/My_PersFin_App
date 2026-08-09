@@ -1,4 +1,5 @@
-﻿export interface CategoryNode {
+﻿// Shared TypeScript interfaces for API responses and domain models
+export interface CategoryNode {
   key: string;
   name: string;
 }

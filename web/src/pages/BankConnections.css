@@ -31,6 +31,7 @@
 .bank-header-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* ── Notice banners ────────────────────────── */
@@ -212,6 +213,7 @@
 .conn-card-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ── Accounts table ────────────────────────── */

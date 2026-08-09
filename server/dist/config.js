@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PLAID_ENV = exports.PLAID_SECRET = exports.PLAID_CLIENT_ID = exports.SESSION_SECRET = exports.PORT = exports.MONGO_URI = void 0;
+// Loads environment variables and exports typed config constants for the app
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 exports.MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/persfin";

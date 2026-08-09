@@ -1,3 +1,4 @@
+// Tiny inline sparkline that colours the line green/red based on first-to-last trend
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 import { COLORS, fmtCAD } from "./ChartTheme";
 
@@ -9,6 +10,7 @@ interface Props {
   formatValue?: (v: number) => string;
 }
 
+// Returns null for single-point arrays since a trend needs at least two values
 export default function MiniSparkline({
   data,
   color = COLORS.net,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import "./InvestmentPerformanceDashboard.css";
+import { fmtCAD as fmt, fmtPctSigned } from "../utils/formatters";
 
 interface HoldingInput {
   id: number;
@@ -44,10 +45,7 @@ const BENCHMARKS = [
   { name: "Canadian Bonds (ZAG.TO)", annualReturn1yr: 4.2, annualReturn3yr: -1.1, annualReturn5yr: 0.9, mer: 0.09 },
 ];
 
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
-const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+const fmtPct = (n: number) => fmtPctSigned(n, 2);
 
 let nextId = 1;
 

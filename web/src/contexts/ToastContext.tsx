@@ -1,3 +1,4 @@
+// Global toast notification system with auto-dismiss and manual close support
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 
 type ToastType = "success" | "error" | "warning" | "info";
@@ -28,12 +29,14 @@ const COLORS: Record<ToastType, string> = {
   info:    "#2563eb",
 };
 
+// Renders toasts in a fixed bottom-right stack; caps queue at 5 to avoid overflow
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const showToast = useCallback((message: string, type: ToastType = "info") => {
     const id = Math.random().toString(36).slice(2);
+    // Keep only the 5 most recent toasts to avoid a growing stack
     setToasts((prev) => [...prev.slice(-4), { id, message, type }]);
     const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));

@@ -1,3 +1,4 @@
+// Mongoose schema for app users: credentials, profile, and province preference
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUser extends Document {
@@ -6,11 +7,12 @@ export interface IUser extends Document {
   firstName?: string;
   lastName?: string;
   province?: string;
-  resetToken?: string;
+  /** SHA-256 hash of the password-reset token (the plaintext token is only ever emailed) */
+  resetTokenHash?: string;
   resetTokenExpires?: Date;
   createdAt: Date;
-  demoProfileIndex?: number; // 1–10 when user has demo data loaded; undefined otherwise
-  demoHistoryYears?: number; // 1|3|5|7; years of history generated for the active demo profile
+  demoProfileIndex?: number;   // 1–10 when user has demo data loaded; undefined otherwise
+  demoHistoryYears?: number;   // 1|3|5|7; years of history generated for the active demo profile
 }
 
 const userSchema = new Schema<IUser>({
@@ -19,11 +21,11 @@ const userSchema = new Schema<IUser>({
   firstName: String,
   lastName: String,
   province: { type: String, default: "ON" },
-  resetToken: String,
+  resetTokenHash: String,
   resetTokenExpires: Date,
   createdAt: { type: Date, default: Date.now },
-  demoProfileIndex: { type: Number, default: null },
-  demoHistoryYears: { type: Number, default: null },
+  demoProfileIndex:  { type: Number, default: null },
+  demoHistoryYears:  { type: Number, default: null },
 });
 
 export const User = mongoose.model<IUser>("User", userSchema);

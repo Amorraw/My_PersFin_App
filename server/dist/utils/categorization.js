@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.categorizeTransaction = categorizeTransaction;
 exports.getSuggestedCategory = getSuggestedCategory;
 exports.getAvailableCategories = getAvailableCategories;
+// Rule-based transaction categorization using merchant/description keyword patterns
 const categoryCatalog_1 = require("../data/categoryCatalog");
 const categoryRules = {
     "Groceries": [/walmart|costco|safeway|whole foods|trader joe|aldi|supermarket|grocery/i],
@@ -44,6 +45,7 @@ const categoryRules = {
     "RESP / RDSP": [/resp|rdsp/i]
 };
 const allSubcategoryNames = new Set(categoryCatalog_1.CATEGORY_CATALOG.flatMap((major) => major.subcategories.map((sub) => sub.name.toLowerCase())));
+// Match description against regex rules; fall back to "Other Living Expenses"
 function categorizeTransaction(description) {
     if (!description)
         return "Other Living Expenses";
@@ -57,9 +59,11 @@ function categorizeTransaction(description) {
     }
     return "Other Living Expenses";
 }
+// Thin alias used by the import flow to suggest a category from raw description text
 function getSuggestedCategory(description) {
     return categorizeTransaction(description);
 }
+// Return all subcategory names from the catalog, deduplicated and sorted alphabetically
 function getAvailableCategories() {
     return Array.from(allSubcategoryNames)
         .map((name) => categoryCatalog_1.CATEGORY_CATALOG.flatMap((major) => major.subcategories).find((sub) => sub.name.toLowerCase() === name)?.name || name)

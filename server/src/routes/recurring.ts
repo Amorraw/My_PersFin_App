@@ -2,14 +2,10 @@ import { Router, Request, Response } from "express";
 import { RecurringTransaction } from "../models/RecurringTransaction";
 import { Transaction } from "../models/Transaction";
 import { Account } from "../models/Account";
+import { requireAuth } from "../middleware/requireLogin";
 import mongoose from "mongoose";
 
 const router = Router();
-
-function requireAuth(req: Request, res: Response, next: Function) {
-  if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
-  next();
-}
 
 function uid(req: Request): mongoose.Types.ObjectId {
   return (req.user as any)._id;

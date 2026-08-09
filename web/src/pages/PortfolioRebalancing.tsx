@@ -1,6 +1,8 @@
+// Portfolio rebalancing tool with drift detection and tax-efficient trade suggestions
 import { useState } from "react";
 import { api } from "../api";
 import "./PortfolioRebalancing.css";
+import { fmtCAD as fmt } from "../utils/formatters";
 
 type AssetClass = "canadian-equity" | "us-equity" | "intl-equity" | "canadian-bonds" | "cash";
 type AccountType = "TFSA" | "RRSP" | "FHSA" | "non-registered" | "other";
@@ -43,13 +45,11 @@ const ASSET_LABELS: Record<AssetClass, string> = {
   cash: "Cash / GIC",
 };
 
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
 let nextId = 1;
 
 const defaultTarget = { canadianEquity: 20, usEquity: 40, intlEquity: 20, canadianBonds: 15, cash: 5 };
 
+// Renders holdings input, target-allocation controls, and rebalancing trade table
 export default function PortfolioRebalancing() {
   const [holdings, setHoldings] = useState<Holding[]>([
     { id: nextId++, name: "", value: "", assetClass: "canadian-equity", accountType: "TFSA" },

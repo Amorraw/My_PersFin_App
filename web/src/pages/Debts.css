@@ -71,6 +71,7 @@
 .debt-detect-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .debt-detecting-msg {

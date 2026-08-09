@@ -1,3 +1,4 @@
+// Real estate tracker showing equity, unrealized gain, and mortgage linkage
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { useFinancialData } from "../contexts/FinancialDataContext";
@@ -59,6 +60,7 @@ const emptyForm = {
   notes: "",
 };
 
+// Renders property cards with equity, gain, and mortgage balance summary
 export default function Properties() {
   const { refresh: refreshFinancials } = useFinancialData();
   const [properties, setProperties]     = useState<Property[]>([]);

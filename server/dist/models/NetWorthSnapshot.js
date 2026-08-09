@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetWorthSnapshot = void 0;
+// Mongoose schema for point-in-time net worth snapshots: assets, liabilities, and breakdown
 const mongoose_1 = __importDefault(require("mongoose"));
 const netWorthSnapshotSchema = new mongoose_1.default.Schema({
     userId: {

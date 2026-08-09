@@ -1,3 +1,4 @@
+// Reusable placeholder card with icon, title, description, and optional CTA button
 interface EmptyStateProps {
   icon?: string;
   title: string;
@@ -5,6 +6,7 @@ interface EmptyStateProps {
   action?: { label: string; onClick: () => void };
 }
 
+// Renders centered dashed-border card; action button is omitted when prop absent
 export default function EmptyState({ icon = "📭", title, description, action }: EmptyStateProps) {
   return (
     <div

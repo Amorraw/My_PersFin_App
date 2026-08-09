@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Property = void 0;
+// Mongoose schema for real estate properties with valuation, equity, and mortgage linkage
 const mongoose_1 = __importStar(require("mongoose"));
 const propertySchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

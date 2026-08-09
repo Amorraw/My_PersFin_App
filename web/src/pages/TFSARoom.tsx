@@ -1,6 +1,8 @@
+// Standalone TFSA lifetime room calculator based on birth year and contribution history
 import { useState } from "react";
 import { api } from "../api";
 import "./TFSARoom.css";
+import { fmtCAD as fmt } from "../utils/formatters";
 
 interface ScheduleRow {
   year: number;
@@ -26,11 +28,9 @@ interface Result {
   notes: string[];
 }
 
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
 const currentYear = new Date().getFullYear();
 
+// Renders input form and year-by-year TFSA room schedule with over-contribution alert
 export default function TFSARoom() {
   const [birthYear, setBirthYear]         = useState(1990);
   const [contributions, setContributions] = useState(0);

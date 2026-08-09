@@ -1,6 +1,8 @@
+// GIC portfolio tracker with ladder calculator and CDIC coverage warnings
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import "./GICTracker.css";
+import { fmtCAD as fmt, fmtDate } from "../utils/formatters";
 
 interface GIC {
   _id: string;
@@ -36,11 +38,6 @@ interface LadderRung {
   maturityYear: number;
 }
 
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
-
-const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
-
 const ACCOUNT_TYPES = ["TFSA", "RRSP", "FHSA", "RRIF", "non-registered", "RDSP"];
 const FREQ_OPTIONS = ["annually", "semi-annually", "quarterly", "monthly"];
 
@@ -56,6 +53,7 @@ const blank = {
   notes: "",
 };
 
+// Renders GIC list, maturity summary, ladder builder, and CDIC check tabs
 export default function GICTracker() {
   const [tab, setTab] = useState<"list" | "ladder" | "cdic">("list");
   const [gics, setGics] = useState<GIC[]>([]);

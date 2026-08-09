@@ -1,6 +1,8 @@
+// Plaid bank connection manager for linking accounts and syncing transactions
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api";
 import './BankConnections.css';
+import { fmtMoney } from "../utils/formatters";
 
 interface PlaidAccount {
   plaidAccountId: string;
@@ -39,6 +41,7 @@ declare global {
   }
 }
 
+// Renders connected institution cards with sync, refresh, and remove controls
 export default function BankConnections() {
   const [connections, setConnections] = useState<BankConnection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +182,7 @@ export default function BankConnections() {
 
   function formatBalance(amount?: number) {
     if (amount == null) return "—";
-    return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(amount);
+    return fmtMoney(amount);
   }
 
   if (loading) {

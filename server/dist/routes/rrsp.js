@@ -1,4 +1,5 @@
 "use strict";
+// RRSP routes: CRUD for RRSP accounts with contribution room, withdrawals, and withholding tracking
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const RRSPAccount_1 = require("../models/RRSPAccount");
@@ -53,7 +54,7 @@ function computeSummary(accounts) {
         annualMax: currentAnnualLimit(),
     };
 }
-// GET /api/rrsp
+// GET / — list all RRSP accounts for the user
 router.get("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -65,7 +66,7 @@ router.get("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// GET /api/rrsp/summary
+// GET /summary — aggregate RRSP balance, deduction limit, remaining room, and used percentage
 router.get("/summary", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -77,7 +78,7 @@ router.get("/summary", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/rrsp
+// POST / — create a new RRSP account with initial balance and deduction limit
 router.post("/", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -103,7 +104,7 @@ router.post("/", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// PUT /api/rrsp/:id
+// PUT /:id — update RRSP account fields
 router.put("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -118,7 +119,7 @@ router.put("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/rrsp/:id
+// DELETE /:id — remove an RRSP account by ID
 router.delete("/:id", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -132,7 +133,7 @@ router.delete("/:id", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/rrsp/:id/contributions
+// POST /:id/contributions — record a contribution and add it to the account balance
 router.post("/:id/contributions", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -152,7 +153,7 @@ router.post("/:id/contributions", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/rrsp/:id/contributions/:cid
+// DELETE /:id/contributions/:cid — remove a contribution and deduct it from the account balance
 router.delete("/:id/contributions/:cid", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -171,7 +172,7 @@ router.delete("/:id/contributions/:cid", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// POST /api/rrsp/:id/withdrawals
+// POST /:id/withdrawals — record a withdrawal (with withholding tax) and reduce the balance
 router.post("/:id/withdrawals", async (req, res) => {
     try {
         const userId = req.user.id;
@@ -191,7 +192,7 @@ router.post("/:id/withdrawals", async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 });
-// DELETE /api/rrsp/:id/withdrawals/:wid
+// DELETE /:id/withdrawals/:wid — remove a withdrawal and restore the amount to the balance
 router.delete("/:id/withdrawals/:wid", async (req, res) => {
     try {
         const userId = req.user.id;

@@ -1,5 +1,7 @@
+// Nodemailer wrapper for transactional emails; logs to console when SMTP is not configured
 import nodemailer from "nodemailer";
 
+// Build a nodemailer transport from env vars; returns null if SMTP creds are absent
 function createTransport() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
 
@@ -13,6 +15,7 @@ function createTransport() {
   });
 }
 
+// Send a password-reset link email; falls back to console.log in development
 export async function sendPasswordResetEmail(
   toEmail: string,
   resetToken: string,

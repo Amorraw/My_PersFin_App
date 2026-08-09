@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FinancialPlan = void 0;
+// Mongoose schema for long-term financial plans with goals, assumptions, and projections
 const mongoose_1 = __importStar(require("mongoose"));
 const financialPlanSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: "User", required: true },

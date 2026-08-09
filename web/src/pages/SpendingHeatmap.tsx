@@ -1,5 +1,7 @@
+// Calendar heatmap visualizing daily expense intensity across the year
 import { useState, useEffect, useMemo } from "react";
 import './SpendingHeatmap.css';
+import { fmtMoney as CAD } from "../utils/formatters";
 
 interface Transaction {
   _id: string;
@@ -13,9 +15,6 @@ interface Transaction {
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
 function heatColor(pct: number, isDark: boolean): string {
   if (pct === 0) return isDark ? "#1f2937" : "#f3f4f6";
   if (pct < 0.25) return "#bfdbfe";
@@ -24,6 +23,7 @@ function heatColor(pct: number, isDark: boolean): string {
   return "#1d4ed8";
 }
 
+// Renders 12-month calendar grid with heat-colored daily spending cells
 export default function SpendingHeatmap() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,7 @@ export default function SpendingHeatmap() {
     return ["all", ...Array.from(cats).sort()];
   }, [transactions]);
 
+  // Aggregates expense totals per calendar day for heatmap cell intensity
   const dailyMap = useMemo(() => {
     const map: Record<string, { amount: number; txns: Transaction[] }> = {};
     for (const t of transactions) {

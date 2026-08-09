@@ -1,3 +1,4 @@
+// In-app notification centre for RRSP, TFSA, bill, budget, and spending alerts
 import { useState, useEffect, useCallback } from "react";
 import './Notifications.css';
 
@@ -41,6 +42,7 @@ const SEV_ICONS: Record<Severity, string> = {
   critical: "🔴",
 };
 
+// Renders filterable notification list with read/dismiss and bulk-read actions
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

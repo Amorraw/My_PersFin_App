@@ -1,0 +1,29 @@
+# Environment files — never commit secrets
+.env
+.env.local
+.env.production
+server/.env
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+server/dist/
+web/dist/
+
+# Logs
+*.log
+server/mongod-restart.log
+server/server-dev.log
+python-ml/*.log
+python-ml/*.err
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db

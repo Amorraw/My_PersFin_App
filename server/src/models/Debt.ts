@@ -1,4 +1,5 @@
-﻿import mongoose, { Schema, Document } from "mongoose";
+﻿// Mongoose schema for debts: balance, interest rate, minimum payment, and due schedule
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDebt extends Document {
   userId: mongoose.Types.ObjectId;
