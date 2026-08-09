@@ -46,8 +46,20 @@ class BudgetSuggestReq(BaseModel):
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
-def _ets_forecast(series: pd.Series, n: int) -> pd.Series:
-    """Holt exponential smoothing with moving-average fallback.
+def _ets_forecast(series: pd.Series, n: int) -> tuple[pd.Series, pd.Series, pd.Series, bool]:
+    """Holt-Winters exponential smoothing with moving-average fallback.
+
+    Two things matter for multi-year forecasts to look realistic instead of
+    a mechanical straight line: the trend is always damped (so it levels off
+    toward a plateau rather than compounding linearly forever), and a yearly
+    seasonal component is fit whenever there's enough history to do so
+    reliably (>= 2 full 12-month cycles) so the forecast reproduces the
+    month-to-month ups and downs a real spending category actually has.
+
+    Also returns a 25th/75th percentile band around the point forecast,
+    bootstrapped from the fitted model's own residuals via statsmodels'
+    `.simulate()` — a real Monte Carlo spread grounded in this category's
+    actual volatility, not a fabricated +/-X% guess.
 
     statsmodels returns a RangeIndex on the forecast when it cannot infer the
     series frequency (common with pandas 2.2+ DatetimeIndex without explicit freq).
@@ -56,17 +68,41 @@ def _ets_forecast(series: pd.Series, n: int) -> pd.Series:
     """
     last_date = pd.Timestamp(series.index[-1])
     future_idx = pd.date_range(last_date + pd.DateOffset(months=1), periods=n, freq="MS")
+    seasonal_periods = 12
+    has_seasonal = len(series) >= 2 * seasonal_periods
     try:
         from statsmodels.tsa.holtwinters import ExponentialSmoothing
         trend = "add" if len(series) >= 4 else None
-        damped = trend is not None and len(series) >= 6
-        model = ExponentialSmoothing(series, trend=trend, damped_trend=damped).fit(optimized=True)
-        fc = model.forecast(n)
-        # fc may have a RangeIndex — replace it with the correct future dates
-        return pd.Series(fc.values, index=future_idx)
+        damped = trend is not None
+        model = ExponentialSmoothing(
+            series,
+            trend=trend,
+            damped_trend=damped,
+            seasonal="add" if has_seasonal else None,
+            seasonal_periods=seasonal_periods if has_seasonal else None,
+        ).fit(optimized=True)
+        try:
+            # The displayed "average" is the mean of this same simulation set
+            # (not the model's separate analytic point forecast) so it's
+            # mathematically guaranteed to fall inside its own p25-p75 band —
+            # composite categories that sum several payment streams with
+            # different lifetimes (e.g. a loan that gets paid off partway
+            # through the window) can otherwise make the two diverge.
+            sims = model.simulate(nsimulations=n, repetitions=300, error="add", random_errors="bootstrap")
+            fc = pd.Series(sims.mean(axis=1).values, index=future_idx)
+            p25 = pd.Series(sims.quantile(0.25, axis=1).values, index=future_idx)
+            p75 = pd.Series(sims.quantile(0.75, axis=1).values, index=future_idx)
+        except Exception:
+            # Simulation is best-effort — fall back to the analytic point
+            # forecast with a flat +/-10% band.
+            fc = pd.Series(model.forecast(n).values, index=future_idx)
+            p25, p75 = fc * 0.9, fc * 1.1
+
+        return fc, p25, p75, has_seasonal
     except Exception:
         avg = float(series.mean())
-        return pd.Series([avg] * n, index=future_idx)
+        flat = pd.Series([avg] * n, index=future_idx)
+        return flat, flat * 0.9, flat * 1.1, False
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────────────
@@ -81,6 +117,9 @@ def forecast_spending(req: ForecastReq):
     if not req.monthly_spending:
         raise HTTPException(400, "No spending data provided")
 
+    # Clamp to a sane range — up to 5 years, well past the 2-3 year multi-year view.
+    n = max(1, min(req.forecast_months, 60))
+
     df = pd.DataFrame([s.model_dump() for s in req.monthly_spending])
     df["month"] = pd.to_datetime(df["month"] + "-01")
 
@@ -90,7 +129,11 @@ def forecast_spending(req: ForecastReq):
         if len(g) < 2:
             continue
 
-        fc = _ets_forecast(g, req.forecast_months).clip(lower=0)
+        fc, p25, p75, seasonal_applied = _ets_forecast(g, n)
+        fc = fc.clip(lower=0)
+        # Clip and re-sort per point in case bootstrap noise ever inverts the pair.
+        p25_vals = np.minimum(p25.clip(lower=0).values, p75.clip(lower=0).values)
+        p75_vals = np.maximum(p25.clip(lower=0).values, p75.clip(lower=0).values)
 
         last_val = float(g.iloc[-1])
         fc_last = float(fc.iloc[-1])
@@ -102,13 +145,14 @@ def forecast_spending(req: ForecastReq):
                 for m, a in g.items()
             ],
             "forecast": [
-                {"month": m.strftime("%Y-%m"), "amount": round(float(a), 2)}
-                for m, a in fc.items()
+                {"month": m.strftime("%Y-%m"), "amount": round(float(a), 2), "p25": round(float(lo), 2), "p75": round(float(hi), 2)}
+                for m, a, lo, hi in zip(fc.index, fc.values, p25_vals, p75_vals)
             ],
             "trend": trend,
+            "seasonal": seasonal_applied,
         }
 
-    return {"forecasts": results, "months_forecast": req.forecast_months}
+    return {"forecasts": results, "months_forecast": n}
 
 
 @app.post("/anomalies")

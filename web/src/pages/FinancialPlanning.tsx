@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
 import { api } from "../api";
+import { useFinancialData } from "../contexts/FinancialDataContext";
 import "./FinancialPlanning.css";
 
 interface RetirementData {
@@ -32,6 +33,7 @@ interface TrajectoryData {
 }
 
 export default function FinancialPlanning(): ReactElement {
+  const { netWorth, snapshot } = useFinancialData();
   const [currentAge, setCurrentAge] = useState(35);
   const [retirementAge, setRetirementAge] = useState(65);
   const [currentIncome, setCurrentIncome] = useState(75000);
@@ -41,6 +43,19 @@ export default function FinancialPlanning(): ReactElement {
   const [desiredRetirementIncome, setDesiredRetirementIncome] = useState(60000);
   const [employerPensionMonthly, setEmployerPensionMonthly] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // One-time prefill from real data when it first arrives — this page's
+  // "what-if" defaults stay untouched afterward, even as real data changes.
+  // Skips fields where the live value is 0 (no data yet) to avoid replacing
+  // a sensible example default with a confusing zero for brand-new users.
+  useEffect(() => {
+    if (prefilled || !netWorth || !snapshot) return;
+    setPrefilled(true);
+    if (netWorth.netWorth > 0) setCurrentSavings(Math.round(netWorth.netWorth));
+    if (snapshot.monthlyIncome > 0) setCurrentIncome(Math.round(snapshot.monthlyIncome * 12));
+    if (snapshot.monthlyExpenses > 0) setMonthlyExpenses(Math.round(snapshot.monthlyExpenses));
+  }, [netWorth, snapshot, prefilled]);
 
   const [retirement, setRetirement] = useState<RetirementData | null>(null);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFundData | null>(null);
@@ -101,6 +116,11 @@ export default function FinancialPlanning(): ReactElement {
 
       <div className="planning-section">
         <h2>Step 1: Your Financial Details</h2>
+        {prefilled && (
+          <p style={{ fontSize: "0.8rem", color: "var(--text-light)", marginTop: -8, marginBottom: 12 }}>
+            Income, savings, and expenses are prefilled from your real accounts — edit any field to explore a different scenario.
+          </p>
+        )}
         <div className="input-grid">
           <div className="input-group">
             <label>Current Age</label>

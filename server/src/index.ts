@@ -4,8 +4,8 @@ import session from "express-session";
 import path from "path";
 import MongoStore from "connect-mongo";
 import passport from "passport";
-import mongoose from "mongoose";
 import { MONGO_URI, PORT, SESSION_SECRET } from "./config";
+import { connectToDatabase } from "./db";
 import "./passport"; // configure local strategy, serialize/deserialize
 
 import authRoutes from "./routes/auth";
@@ -85,86 +85,96 @@ app.use((req, _res, next) => {
 
 app.use(express.json({ limit: "50mb" }));
 
-// ── 4. Session + Passport (API routes only need these) ───────────────────────
-const SESSION_TTL_SEC = 7 * 24 * 60 * 60;
+async function main() {
+  // Resolve the Mongo connection first — the session store below must be built
+  // against whichever URI actually connected (primary, local, or embedded
+  // fallback), not the original config value, or sessions silently break when
+  // mongoose falls back but the store doesn't.
+  const resolvedMongoUri = await connectToDatabase(MONGO_URI);
 
-const store = new MongoStore({
-  mongoUrl: MONGO_URI,
-  ttl: SESSION_TTL_SEC,
-  touchAfter: 24 * 3600,
-});
+  // ── 4. Session + Passport (API routes only need these) ─────────────────────
+  const SESSION_TTL_SEC = 7 * 24 * 60 * 60;
 
-store.on("error", (err) => {
-  console.error("Session store error:", err);
-});
-
-app.use(
-  session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store,
-    cookie: {
-      secure: isProd,
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: SESSION_TTL_SEC * 1000,
-    },
-  })
-);
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-// ── 5. API routes ─────────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);
-app.use("/api/accounts", accountRoutes);
-app.use("/api/account-types", accountTypesRoutes);
-app.use("/api/transactions", transactionRoutes);
-app.use("/api/budgets", budgetRoutes);
-app.use("/api/debts", debtRoutes);
-app.use("/api/debt-strategies", debtStrategyRoutes);
-app.use("/api/investment-recommendations", investmentRecommendationsRoutes);
-app.use("/api/financial-plans", financialPlansRoutes);
-app.use("/api/import", importRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/categories", categoriesRoutes);
-app.use("/api/tax-accounts", taxRoutes);
-app.use("/api/goals", goalsRoutes);
-app.use("/api/net-worth", netWorthRoutes);
-app.use("/api/bills", billsRoutes);
-app.use("/api/properties", propertiesRoutes);
-app.use("/api/gic", gicRoutes);
-app.use("/api/portfolio", portfolioRoutes);
-app.use("/api/insurance", insuranceRoutes);
-app.use("/api/income", incomeRoutes);
-app.use("/api/notifications", notificationsRoutes);
-app.use("/api/reports", reportsRoutes);
-app.use("/api/recurring", recurringRoutes);
-app.use("/api/plaid", plaidRoutes);
-app.use("/api/ml", mlRoutes);
-app.use("/api/demo", demoRoutes);
-app.use("/api/setup", setupRoutes);
-app.use("/api/fhsa", fhsaRoutes);
-app.use("/api/resp", respRoutes);
-app.use("/api/tfsa-tracker", tfsaTrackerRoutes);
-app.use("/api/rrsp-tracker", rrspTrackerRoutes);
-
-// ── 6. SPA fallback — must come before error handler ─────────────────────────
-if (isProd) {
-  app.get("/{*splat}", (_req, res) => {
-    res.sendFile(path.join(frontendDist, "index.html"));
+  const sessionStore = new MongoStore({
+    mongoUrl: resolvedMongoUri,
+    ttl: SESSION_TTL_SEC,
+    touchAfter: 24 * 3600,
   });
-}
 
-// ── 7. Error handler — must be last ──────────────────────────────────────────
-app.use((err: any, _req: any, res: any, _next: any) => {
-  console.error("Error:", err);
-  res.status(err.status || 500).json({ message: err.message });
-});
+  sessionStore.on("error", (err) => {
+    console.error("Session store error:", err);
+  });
 
-mongoose.connect(MONGO_URI).then(() => {
-  console.log("Mongo connected");
+  app.use(
+    session({
+      secret: SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      store: sessionStore,
+      cookie: {
+        secure: isProd,
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: SESSION_TTL_SEC * 1000,
+      },
+    })
+  );
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // ── 5. API routes ───────────────────────────────────────────────────────────
+  app.use("/api/auth", authRoutes);
+  app.use("/api/accounts", accountRoutes);
+  app.use("/api/account-types", accountTypesRoutes);
+  app.use("/api/transactions", transactionRoutes);
+  app.use("/api/budgets", budgetRoutes);
+  app.use("/api/debts", debtRoutes);
+  app.use("/api/debt-strategies", debtStrategyRoutes);
+  app.use("/api/investment-recommendations", investmentRecommendationsRoutes);
+  app.use("/api/financial-plans", financialPlansRoutes);
+  app.use("/api/import", importRoutes);
+  app.use("/api/analytics", analyticsRoutes);
+  app.use("/api/categories", categoriesRoutes);
+  app.use("/api/tax-accounts", taxRoutes);
+  app.use("/api/goals", goalsRoutes);
+  app.use("/api/net-worth", netWorthRoutes);
+  app.use("/api/bills", billsRoutes);
+  app.use("/api/properties", propertiesRoutes);
+  app.use("/api/gic", gicRoutes);
+  app.use("/api/portfolio", portfolioRoutes);
+  app.use("/api/insurance", insuranceRoutes);
+  app.use("/api/income", incomeRoutes);
+  app.use("/api/notifications", notificationsRoutes);
+  app.use("/api/reports", reportsRoutes);
+  app.use("/api/recurring", recurringRoutes);
+  app.use("/api/plaid", plaidRoutes);
+  app.use("/api/ml", mlRoutes);
+  app.use("/api/demo", demoRoutes);
+  app.use("/api/setup", setupRoutes);
+  app.use("/api/fhsa", fhsaRoutes);
+  app.use("/api/resp", respRoutes);
+  app.use("/api/tfsa-tracker", tfsaTrackerRoutes);
+  app.use("/api/rrsp-tracker", rrspTrackerRoutes);
+
+  // ── 6. SPA fallback — must come before error handler ───────────────────────
+  if (isProd) {
+    app.get("/{*splat}", (_req, res) => {
+      res.sendFile(path.join(frontendDist, "index.html"));
+    });
+  }
+
+  // ── 7. Error handler — must be last ─────────────────────────────────────────
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    console.error("Error:", err);
+    res.status(err.status || 500).json({ message: err.message });
+  });
+
   app.listen(PORT, () => console.log(`API on http://localhost:${PORT}`));
   startScheduler();
+}
+
+main().catch((err) => {
+  console.error("Startup failed:", err);
+  process.exit(1);
 });

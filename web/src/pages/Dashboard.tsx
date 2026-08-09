@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import type { Account } from "../types";
+import { useFinancialData } from "../contexts/FinancialDataContext";
+import { EmergencyFundBanner } from "../components/EmergencyFundBanner";
 import {
   TrendAreaChart,
   DonutChart,
@@ -12,22 +14,6 @@ import {
   COLORS as C,
 } from "../components/charts";
 import './Dashboard.css';
-
-interface FinancialSnapshot {
-  netWorth: number;
-  totalAssets: number;
-  totalLiabilities: number;
-  totalDebt: number;
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  monthlyCashFlow: number;
-  savingsRate: number;
-  debtRatio: number;
-  emergencyFundMonths: number;
-  netWorthTrend: number;
-  activeGoals: number;
-  goalsProgress: number;
-}
 
 interface CashFlowMonth { month: string; income: number; expenses: number; net: number; }
 interface AllocSlice    { name: string; value: number; color: string; }
@@ -76,8 +62,8 @@ const STEP_COLORS: Record<StepStatus, string> = {
 };
 
 export default function Dashboard() {
+  const { snapshot, refresh: refreshFinancials } = useFinancialData();
   const [accounts,         setAccounts]         = useState<Account[]>([]);
-  const [snapshot,         setSnapshot]         = useState<FinancialSnapshot | null>(null);
   const [cashFlow,         setCashFlow]         = useState<CashFlowMonth[]>([]);
   const [allocation,       setAllocation]       = useState<AllocSlice[]>([]);
   const [spending,         setSpending]         = useState<SpendItem[]>([]);
@@ -116,17 +102,15 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [accountsData, snapshotData, cashFlowData, allocData, spendData, budgetData] =
+      const [accountsData, cashFlowData, allocData, spendData, budgetData] =
         await Promise.all([
           api("/accounts"),
-          api("/analytics/financial-snapshot").catch(() => null),
           api("/analytics/cash-flow-history?months=12").catch(() => []),
           api("/analytics/investment-allocation").catch(() => []),
           api("/analytics/spending-by-category").catch(() => ({ categories: [] })),
           api("/analytics/budget-comparison").catch(() => []),
         ]);
       setAccounts(accountsData);
-      if (snapshotData) setSnapshot(snapshotData);
       setCashFlow(cashFlowData ?? []);
       setAllocation(allocData ?? []);
       setSpending((spendData?.categories ?? []).slice(0, 8));
@@ -266,6 +250,7 @@ export default function Dashboard() {
 
     setAnalysisRunning(false);
     loadData(); // refresh KPI cards with fresh data
+    refreshFinancials(); // net worth, debts, and cash flow all just changed
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
@@ -293,6 +278,7 @@ export default function Dashboard() {
       setEditingAccountId(null);
       setShowAccountForm(false);
       loadData();
+      refreshFinancials();
     } catch (err: any) {
       alert(err.message || "Failed to save account");
     }
@@ -312,6 +298,7 @@ export default function Dashboard() {
     try {
       await api(`/accounts/${id}`, { method: "DELETE" });
       loadData();
+      refreshFinancials();
     } catch (err: any) {
       alert(err.message || "Failed to delete account");
     }
@@ -353,6 +340,8 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      <EmergencyFundBanner />
 
       {/* ── Smart Analysis Panel ────────────────────────────────── */}
       {analysisOpen && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useFinancialData } from '../contexts/FinancialDataContext';
 import './Accounts.css';
 
 // ── Canadian institutions ────────────────────────────────────────────────────
@@ -69,6 +70,7 @@ const LIABILITY_TYPES = new Set(['credit-card', 'line-of-credit', 'mortgage', 'a
 // ── Component ────────────────────────────────────────────────────────────────
 
 const Accounts: React.FC = () => {
+  const { refresh: refreshFinancials } = useFinancialData();
   const [tab, setTab] = useState<'bank' | 'registered'>('bank');
 
   // Bank accounts state
@@ -215,6 +217,7 @@ const Accounts: React.FC = () => {
       setShowBankForm(false);
       setBankForm({ institution: 'TD (TD Canada Trust)', institutionCustom: '', type: 'chequing', name: '', openingBalance: '0', currency: 'CAD' });
       await fetchBankAccounts();
+      await refreshFinancials();
     } catch (err) {
       console.error('Error creating account:', err);
     }
@@ -243,6 +246,7 @@ const Accounts: React.FC = () => {
       setEditingAccount(null);
       setShowBankForm(false);
       await fetchBankAccounts();
+      await refreshFinancials();
     } catch (err) {
       console.error('Error updating account:', err);
     }
@@ -253,6 +257,7 @@ const Accounts: React.FC = () => {
     try {
       await fetch(`/api/accounts/${id}`, { method: 'DELETE', credentials: 'include' });
       await fetchBankAccounts();
+      await refreshFinancials();
     } catch (err) {
       console.error('Error deleting account:', err);
     }

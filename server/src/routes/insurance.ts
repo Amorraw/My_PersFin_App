@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { requireLogin } from "../middleware/requireLogin";
+import { Debt } from "../models/Debt";
+import { getLiveFinancials } from "../utils/liveFinancials";
 
 const router = Router();
 router.use(requireLogin);
@@ -141,13 +143,14 @@ const PROVINCIAL_GAPS: Record<string, Record<string, string>> = {
 };
 
 // ── POST /insurance/life-needs — DIME method ──
-router.post("/life-needs", (req, res, next) => {
+router.post("/life-needs", async (req, res, next) => {
   try {
+    const userId = (req.user as any)._id;
     const {
-      debts = 0,
-      annualIncome = 0,
+      debts,
+      annualIncome,
       incomeReplacementYears = 10,
-      mortgageBalance = 0,
+      mortgageBalance,
       childrenCount = 0,
       educationCostPerChild = 50000,
       groupLifeInsurance = 0,
@@ -156,9 +159,37 @@ router.post("/life-needs", (req, res, next) => {
       isSmoker = false,
     } = req.body;
 
-    const D = Number(debts);
-    const I = Number(annualIncome) * Number(incomeReplacementYears);
-    const M = Number(mortgageBalance);
+    // debts, mortgageBalance, and annualIncome default from real accounts/debts/
+    // transactions when omitted — still fully overridable by the caller.
+    let resolvedDebts = debts;
+    let resolvedMortgage = mortgageBalance;
+    let resolvedIncome = annualIncome;
+    let incomeSource: string | undefined;
+
+    if (resolvedDebts == null || resolvedMortgage == null || resolvedIncome == null) {
+      const [allDebts, live] = await Promise.all([
+        Debt.find({ userId }),
+        getLiveFinancials(userId),
+      ]);
+      if (resolvedDebts == null) {
+        resolvedDebts = allDebts
+          .filter((d) => d.type !== "mortgage")
+          .reduce((s, d) => s + d.currentBalance, 0);
+      }
+      if (resolvedMortgage == null) {
+        resolvedMortgage = allDebts
+          .filter((d) => d.type === "mortgage")
+          .reduce((s, d) => s + d.currentBalance, 0);
+      }
+      if (resolvedIncome == null) {
+        resolvedIncome = live.monthlyIncome * 12;
+        incomeSource = "estimated from this month's income × 12, not a trailing-year sum";
+      }
+    }
+
+    const D = Number(resolvedDebts);
+    const I = Number(resolvedIncome) * Number(incomeReplacementYears);
+    const M = Number(resolvedMortgage);
     const E = Number(childrenCount) * Number(educationCostPerChild);
     const totalNeed = D + I + M + E;
     const existingCoverage = Number(groupLifeInsurance) + Number(existingPolicies);
@@ -204,6 +235,7 @@ router.post("/life-needs", (req, res, next) => {
       coverageGap,
       hasEnoughCoverage: coverageGap <= 0,
       termEstimates,
+      incomeSource,
       notes: [
         "Premium estimates are illustrative — real rates depend on health history, underwriting, and the specific insurer.",
         "Group life through an employer is typically 1–2× salary and is NOT portable if you change jobs.",
@@ -217,10 +249,11 @@ router.post("/life-needs", (req, res, next) => {
 });
 
 // ── POST /insurance/disability-gap ──
-router.post("/disability-gap", (req, res, next) => {
+router.post("/disability-gap", async (req, res, next) => {
   try {
+    const userId = (req.user as any)._id;
     const {
-      grossMonthlyIncome = 0,
+      grossMonthlyIncome,
       employerSTDWeeks = 0,
       employerSTDPercent = 0,
       employerLTDPercent = 0,
@@ -231,7 +264,15 @@ router.post("/disability-gap", (req, res, next) => {
       targetReplacementRate = 0.85,
     } = req.body;
 
-    const monthly = Number(grossMonthlyIncome);
+    let resolvedMonthlyIncome = grossMonthlyIncome;
+    let incomeSource: string | undefined;
+    if (resolvedMonthlyIncome == null) {
+      const live = await getLiveFinancials(userId);
+      resolvedMonthlyIncome = live.monthlyIncome;
+      incomeSource = "estimated from this month's income";
+    }
+
+    const monthly = Number(resolvedMonthlyIncome);
     const target = monthly * Number(targetReplacementRate);
 
     // EI sickness benefit
@@ -265,6 +306,7 @@ router.post("/disability-gap", (req, res, next) => {
     res.json({
       monthly,
       target,
+      incomeSource,
       eiSickness: { eiMonthly, weeks: EI_SICKNESS.maxWeeks },
       shortTerm: {
         stdMonthly: Number(employerSTDPercent) > 0 ? stdMonthly : 0,

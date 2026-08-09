@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../AuthContext';
 import { api } from '../api';
+import { useFinancialData } from '../contexts/FinancialDataContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { fmtCADShort, fmtMoney } from '../components/charts';
 import './NetWorth.css';
@@ -12,49 +12,23 @@ interface NetWorthSnapshot {
   totalLiabilities: number;
 }
 
-interface NetWorthBreakdown {
-  totalAssets: number;
-  totalLiabilities: number;
-  netWorth: number;
-  breakdown: {
-    assets: {
-      cash: number;
-      investments: number;
-      realEstate: number;
-      otherAssets: number;
-    };
-    liabilities: {
-      mortgages: number;
-      creditCard: number;
-      loans: number;
-      otherLiabilities: number;
-    };
-  };
-}
-
 export default function NetWorth() {
-  useAuth();
-  const [current, setCurrent] = useState<NetWorthBreakdown | null>(null);
+  const { netWorth: current, refresh: refreshFinancials } = useFinancialData();
   const [history, setHistory] = useState<NetWorthSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [months, setMonths] = useState(12);
   const [projYears, setProjYears] = useState(10);
 
   useEffect(() => {
-    fetchNetWorth();
+    fetchHistory();
   }, [months]);
 
-  const fetchNetWorth = async () => {
+  const fetchHistory = async () => {
     try {
-      const [currentData, historyData] = await Promise.all([
-        api('/net-worth/current'),
-        api(`/net-worth/history?months=${months}`),
-      ]);
-
-      setCurrent(currentData);
+      const historyData = await api(`/net-worth/history?months=${months}`);
       setHistory(historyData.snapshots || []);
     } catch (err) {
-      console.error('Error fetching net worth:', err);
+      console.error('Error fetching net worth history:', err);
     } finally {
       setLoading(false);
     }
@@ -63,7 +37,8 @@ export default function NetWorth() {
   const createSnapshot = async () => {
     try {
       await api('/net-worth/snapshot', { method: 'POST' });
-      await fetchNetWorth();
+      await fetchHistory();
+      await refreshFinancials(); // netWorthTrend elsewhere (e.g. Dashboard) depends on the new snapshot
     } catch (err) {
       console.error('Error creating snapshot:', err);
     }

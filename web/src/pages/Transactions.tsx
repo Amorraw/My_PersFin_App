@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { api } from "../api";
+import { useFinancialData } from "../contexts/FinancialDataContext";
 import type { Transaction, Account, CategoryMajor } from "../types";
 import { CATEGORY_CATALOG } from "../data/categoryCatalog";
 import { TrendAreaChart, fmtMoney } from "../components/charts";
@@ -38,6 +39,7 @@ function tabForAccountType(accountType: string): AccountTab {
 
 export default function Transactions() {
   const navigate = useNavigate();
+  const { refresh: refreshFinancials } = useFinancialData();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<CategoryMajor[]>([]);
@@ -101,6 +103,7 @@ export default function Transactions() {
         setCategories(CATEGORY_CATALOG);
       }
       setCurrentPage(1);
+      refreshFinancials(); // transactions drive live cash flow/emergency fund elsewhere
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load transactions";
       console.error(message);

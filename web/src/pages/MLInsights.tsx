@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer,
 } from "recharts";
 import './MLInsights.css';
@@ -13,14 +13,20 @@ const CAD = (n: number) =>
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface HistPoint { month: string; amount: number; }
+interface ForecastPoint extends HistPoint { p25: number; p75: number; }
 interface ForecastData {
   historical: HistPoint[];
-  forecast: HistPoint[];
+  forecast: ForecastPoint[];
   trend: "up" | "down" | "stable";
+  seasonal: boolean;
 }
 interface ForecastResult {
   forecasts: Record<string, ForecastData>;
   months_forecast: number;
+  insufficientHistory?: boolean;
+  monthsAvailable?: number;
+  limitedHorizon?: boolean;
+  message?: string;
 }
 interface AnomalyTxn {
   id: string; amount: number; category: string; date: string;
@@ -55,20 +61,33 @@ export default function MLInsights() {
   const [budgetLoading, setBudgetLoading] = useState(false);
 
   const [mlError, setMlError] = useState<string | null>(null);
+  const [forecastNote, setForecastNote] = useState<string | null>(null);
 
   const clearError = () => setMlError(null);
 
   const runForecast = async () => {
     clearError();
+    setForecastNote(null);
     setForecastLoading(true);
     try {
       const data: ForecastResult = await api("/ml/forecast", {
         method: "POST",
         body: JSON.stringify({ months: forecastMonths }),
       });
+
+      if (data.insufficientHistory) {
+        setForecastResult(null);
+        alert(data.message || "Cannot perform this forecast for lack of prior years' data.");
+        return;
+      }
+
       setForecastResult(data);
       const cats = Object.keys(data.forecasts);
       if (cats.length) setForecastCat(cats[0]);
+      if (data.limitedHorizon && data.message) {
+        // Non-blocking — the forecast still ran, just at a shorter horizon.
+        setForecastNote(data.message);
+      }
     } catch (err: any) {
       setMlError(err.status === 502
         ? "Python ML service is not running. Start it with: cd python-ml && uvicorn main:app --port 8000"
@@ -113,13 +132,38 @@ export default function MLInsights() {
   const buildChartData = (cat: string) => {
     if (!forecastResult?.forecasts[cat]) return [];
     const { historical, forecast } = forecastResult.forecasts[cat];
-    const hist = historical.map(p => ({ month: p.month, actual: p.amount, forecast: null as number | null }));
-    const fc = forecast.map(p => ({ month: p.month, actual: null as number | null, forecast: p.amount }));
-    // Bridge: share last historical point with first forecast so lines connect
-    if (hist.length && fc.length) {
-      fc[0] = { ...fc[0], actual: hist[hist.length - 1].actual };
+    const hist = historical.map(p => ({
+      month: p.month, actual: p.amount as number | null,
+      forecast: null as number | null, base: null as number | null, band: null as number | null,
+      p25: null as number | null, p75: null as number | null,
+    }));
+    const fc = forecast.map(p => ({
+      month: p.month, actual: null as number | null, forecast: p.amount,
+      base: p.p25, band: Math.max(0, p.p75 - p.p25), p25: p.p25, p75: p.p75,
+    }));
+    // Smooth transition: the average line and its percentile band start
+    // exactly where the actual line ends (zero-width band at that instant),
+    // rather than jumping to the first forecasted value from a different point.
+    if (hist.length) {
+      const last = hist[hist.length - 1];
+      hist[hist.length - 1] = { ...last, forecast: last.actual, base: last.actual, band: 0 };
     }
     return [...hist, ...fc];
+  };
+
+  const ForecastTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload;
+    return (
+      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", fontSize: 12 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+        {row.actual != null && <div>Actual: {CAD(row.actual)}</div>}
+        {row.forecast != null && <div style={{ color: "#15803d" }}>Average: {CAD(row.forecast)}</div>}
+        {row.p25 != null && row.p75 != null && (
+          <div style={{ color: "#16a34a" }}>25th–75th percentile: {CAD(row.p25)} – {CAD(row.p75)}</div>
+        )}
+      </div>
+    );
   };
 
   const categories = forecastResult ? Object.keys(forecastResult.forecasts) : [];
@@ -144,7 +188,8 @@ export default function MLInsights() {
           <div>
             <h2>Spending Forecast</h2>
             <p className="ml-section-desc">
-              Holt exponential smoothing on 12 months of expense history
+              Holt-Winters exponential smoothing on up to 24 months of expense history —
+              damped trend, plus yearly seasonality once enough history exists
             </p>
           </div>
           <div className="ml-section-controls">
@@ -156,6 +201,9 @@ export default function MLInsights() {
               <option value={1}>1 month ahead</option>
               <option value={3}>3 months ahead</option>
               <option value={6}>6 months ahead</option>
+              <option value={12}>1 year ahead</option>
+              <option value={24}>2 years ahead</option>
+              <option value={36}>3 years ahead</option>
             </select>
             <button
               className="ml-run-btn forecast"
@@ -166,6 +214,10 @@ export default function MLInsights() {
             </button>
           </div>
         </div>
+
+        {forecastNote && (
+          <p className="ml-chart-note" style={{ marginTop: 0 }}>💡 {forecastNote}</p>
+        )}
 
         {forecastResult && categories.length > 0 && (
           <>
@@ -191,28 +243,32 @@ export default function MLInsights() {
               <>
                 <div style={{ width: "100%", minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={buildChartData(forecastCat)} margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
+                  <ComposedChart data={buildChartData(forecastCat)} margin={{ top: 4, right: 12, bottom: 4, left: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => fmtCADShort(Number(v))} tick={{ fontSize: 11 }} />
-                    <Tooltip
-                      formatter={((v: unknown, name: string | undefined) => [
-                        v != null ? CAD(Number(v)) : "—",
-                        (name ?? "") === "actual" ? "Actual" : "Forecast",
-                      ]) as any}
-                    />
+                    <Tooltip content={<ForecastTooltip />} />
                     <Legend />
+                    <Area type="monotone" dataKey="base" stackId="fc" stroke="none" fill="#16a34a" fillOpacity={0} legendType="none" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="band" stackId="fc" stroke="none" fill="#86efac" fillOpacity={0.55} name="25th–75th percentile" isAnimationActive={false} />
                     <Line type="monotone" dataKey="actual" stroke="#4f46e5" strokeWidth={2} dot={{ r: 3 }} name="Actual" connectNulls={false} />
-                    <Line type="monotone" dataKey="forecast" stroke="#10b981" strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name="Forecast" connectNulls />
-                  </LineChart>
+                    <Line type="monotone" dataKey="forecast" stroke="#15803d" strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name="Average" connectNulls />
+                  </ComposedChart>
                 </ResponsiveContainer>
                 </div>
                 <div className="ml-chart-note">
-                  Dashed = forecasted months.&nbsp;
+                  Dashed = forecasted months. Shaded band = 25th–75th percentile range.&nbsp;
                   Trend:&nbsp;
                   <strong style={{ color: forecastResult.forecasts[forecastCat].trend === "up" ? "#dc2626" : forecastResult.forecasts[forecastCat].trend === "down" ? "#059669" : "#d97706" }}>
                     {forecastResult.forecasts[forecastCat].trend === "up" ? "↑ Increasing" : forecastResult.forecasts[forecastCat].trend === "down" ? "↓ Decreasing" : "→ Stable"}
                   </strong>
+                  {forecastMonths > 6 && (
+                    forecastResult.forecasts[forecastCat].seasonal ? (
+                      <>&nbsp;·&nbsp;<strong style={{ color: "#4f46e5" }}>Includes yearly seasonality</strong> (24+ months of history)</>
+                    ) : (
+                      <>&nbsp;·&nbsp;Trend only — link 24+ months of history in this category for seasonal patterns on multi-year forecasts</>
+                    )
+                  )}
                 </div>
               </>
             )}

@@ -4,25 +4,16 @@ import { Account } from '../models/Account';
 import { Debt } from '../models/Debt';
 import { Property } from '../models/Property';
 import { requireLogin } from '../middleware/requireLogin';
+import { LIABILITY_TYPES, ASSET_CASH_TYPES, ASSET_INVEST_TYPES } from '../utils/financeConstants';
 
 const router = Router();
 router.use(requireLogin);
 
-// Account types that represent liabilities, not assets.
-// Must stay in sync with the same constant in analytics.ts and Accounts.tsx.
-const LIABILITY_TYPES = new Set([
-  'credit-card', 'line-of-credit', 'mortgage',
-  'auto-loan', 'personal-loan', 'student-loan',
-]);
-
-const ASSET_CASH_TYPES       = new Set(['chequing', 'checking', 'savings']);
-const ASSET_INVEST_TYPES     = new Set(['investment', 'tfsa', 'rrsp', 'gic']);
-
 /**
  * Shared helper — computes totals and breakdown from the three data sources.
- * Single source of truth used by both /current and /snapshot.
+ * Single source of truth used by /current, /snapshot, and getLiveFinancials().
  */
-function calcNetWorth(accounts: any[], debts: any[], properties: any[]) {
+export function calcNetWorth(accounts: any[], debts: any[], properties: any[]) {
   const realEstate = properties.reduce((s, p) => s + p.currentEstimatedValue, 0);
 
   // Assets = non-liability accounts + real estate

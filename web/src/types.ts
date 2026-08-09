@@ -105,6 +105,47 @@ export interface FinancialOverview {
   debtsCount: number;
 }
 
+export interface Goal {
+  _id: string;
+  name: string;
+  description?: string;
+  category: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  priority: string;
+  status: string;
+  progressPercentage: number;
+  monthsRemaining: number;
+  recommendedMonthlyContribution: number;
+}
+
+export interface FinancialSnapshot {
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+  totalDebt: number;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  monthlyCashFlow: number;
+  savingsRate: number;
+  debtRatio: number;
+  emergencyFundMonths: number;
+  netWorthTrend: number;
+  activeGoals: number;
+  goalsProgress: number;
+}
+
+export interface NetWorthCurrent {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  breakdown: {
+    assets: { cash: number; investments: number; realEstate: number; otherAssets: number };
+    liabilities: { mortgages: number; creditCard: number; lineOfCredit: number; loans: number; otherLiabilities: number };
+  };
+}
+
 export interface PayoffStrategy {
   cadence?: "monthly" | "biweekly";
   paymentPerCadence?: number;

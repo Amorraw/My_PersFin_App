@@ -102,6 +102,7 @@ const PROFILES: Profile[] = [
 
 const DEMO_EMAIL = "user_test@demo.com";
 const PASSWORD = "Demo1234!";
+const YEAR_OPTIONS = [1, 3, 5, 7] as const;
 
 export default function DemoProfiles() {
   const { user } = useAuth();
@@ -109,6 +110,7 @@ export default function DemoProfiles() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState<number | null>(null); // profileIndex being activated
   const [statusMsg, setStatusMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [years, setYears] = useState<typeof YEAR_OPTIONS[number]>(3);
 
   const copyCredentials = () => {
     navigator.clipboard.writeText(`Email: ${DEMO_EMAIL}\nPassword: ${PASSWORD}`);
@@ -118,7 +120,7 @@ export default function DemoProfiles() {
 
   const handleActivate = async (profileIndex: number) => {
     const p = PROFILES[profileIndex - 1];
-    if (!confirm(`Load the "${p.title}" profile into your account? Your current data will be replaced.`)) return;
+    if (!confirm(`Load the "${p.title}" profile with ${years} year${years === 1 ? "" : "s"} of history into your account? Your current data will be replaced.`)) return;
     setLoading(profileIndex);
     setStatusMsg(null);
     try {
@@ -126,7 +128,7 @@ export default function DemoProfiles() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileIndex }),
+        body: JSON.stringify({ profileIndex, years }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -151,8 +153,26 @@ export default function DemoProfiles() {
         </h1>
         <p style={{ color: "var(--text-light, #6b7280)", fontSize: "0.9rem", maxWidth: 620, margin: "0 auto" }}>
           10 pre-seeded Canadian households — from a debt-laden graduate to a high-net-worth executive —
-          each with 2 years of realistic transaction history. Log in to explore any profile.
+          each with 1-7 years of realistic transaction history covering every feature of the app
+          (accounts, debts, properties, investments, TFSA/RRSP/FHSA/RESP). Log in to explore any profile.
         </p>
+        {user && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 14, fontSize: "0.82rem" }}>
+            <label htmlFor="demo-years-select" style={{ color: "var(--text-light, #6b7280)" }}>
+              Years of history to load:
+            </label>
+            <select
+              id="demo-years-select"
+              value={years}
+              onChange={(e) => setYears(Number(e.target.value) as typeof YEAR_OPTIONS[number])}
+              style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border, #e5e7eb)", background: "var(--bg-card, #fff)", color: "var(--text)" }}
+            >
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>{y} year{y === 1 ? "" : "s"}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {/* Single credential box */}
         <div style={{
           display: "inline-flex", alignItems: "center", gap: 16, marginTop: 16, flexWrap: "wrap", justifyContent: "center",
@@ -286,7 +306,7 @@ export default function DemoProfiles() {
       <div style={{ marginTop: 32, padding: "14px 18px", background: "var(--bg, #f9fafb)", borderRadius: 10, fontSize: "0.78rem", color: "var(--text-light, #6b7280)" }}>
         <strong>How to load demo data:</strong> Run <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 3 }}>npm run seed:demo</code> in the <code>server/</code> directory once.
         To remove all demo data: <code style={{ background: "#e5e7eb", padding: "1px 5px", borderRadius: 3 }}>npm run clear:demo</code>.
-        Demo accounts use realistic 2-year Canadian transaction histories across all account types.
+        Demo accounts use realistic Canadian transaction histories (1-7 years, your choice) across all account types.
       </div>
     </div>
   );

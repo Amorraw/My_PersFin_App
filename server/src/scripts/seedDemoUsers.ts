@@ -1,5 +1,8 @@
 /**
- * Demo data seeder — creates 10 Canadian financial profiles with 2 years of history.
+ * Demo data seeder — creates 10 Canadian financial profiles with 1-7 years of
+ * history (pass `years` in SeedOpts; defaults to 3), covering accounts,
+ * transactions, budgets, bills, goals, debts, properties, recurring
+ * transactions, investments, and TFSA/RRSP/FHSA/RESP tracker accounts.
  * Run: npm run seed:demo
  *
  * All demo accounts use password: Demo1234!
@@ -20,6 +23,49 @@ import { Budget } from "../models/Budget";
 import { Bill } from "../models/Bill";
 import { Goal } from "../models/Goal";
 import { NetWorthSnapshot } from "../models/NetWorthSnapshot";
+import { Debt } from "../models/Debt";
+import { Property } from "../models/Property";
+import { RecurringTransaction } from "../models/RecurringTransaction";
+import { TaxAccount } from "../models/TaxAccount";
+import { Investment } from "../models/Investment";
+import { TFSAAccount } from "../models/TFSAAccount";
+import { RRSPAccount } from "../models/RRSPAccount";
+import { FHSAAccount } from "../models/FHSAAccount";
+import { RESPAccount } from "../models/RESPAccount";
+import { DEBT_DEFAULTS, amortizedPayment } from "../routes/debts";
+import { getRiskProfile, getETFRecommendations } from "../utils/investmentAdvisor";
+
+// ── Shared account-type sets ──────────────────────────────────────────────────
+
+const LIABILITY_TYPES = new Set(["credit-card", "line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
+const TAX_WRAPPER_TYPES = new Set(["tfsa", "rrsp", "investment"]);
+
+const PROVINCE_CITY: Record<string, string> = {
+  ON: "Toronto", BC: "Vancouver", AB: "Calgary", QC: "Montreal", NS: "Halifax",
+  MB: "Winnipeg", SK: "Regina", NB: "Saint John", NL: "St. John's",
+  PE: "Charlottetown", YT: "Whitehorse", NT: "Yellowknife", NU: "Iqaluit",
+};
+
+// Illustrative CAD unit prices + assumed average annual return, per ETF symbol
+// (matches the catalog in utils/investmentAdvisor.ts getETFRecommendations).
+const ETF_MARKET: Record<string, { price: number; annualReturn: number }> = {
+  VFV: { price: 145, annualReturn: 0.09 },
+  VCN: { price: 45, annualReturn: 0.07 },
+  VEF: { price: 28, annualReturn: 0.07 },
+  VAB: { price: 25, annualReturn: 0.03 },
+  VSB: { price: 24, annualReturn: 0.025 },
+  VRE: { price: 18, annualReturn: 0.05 },
+  XGB: { price: 22, annualReturn: 0.04 },
+  VSP: { price: 50, annualReturn: 0.02 },
+};
+
+// Risk profile per persona (profileIndex 1-10) — used for ETF allocation on
+// any tfsa/rrsp/investment account. Irrelevant for profiles with no such
+// accounts (1, 2) but harmless to define.
+const RISK_BY_PROFILE_INDEX: Array<"conservative" | "moderate" | "aggressive"> = [
+  "conservative", "conservative", "moderate", "aggressive", "moderate",
+  "moderate", "aggressive", "moderate", "conservative", "moderate",
+];
 
 // ── Seeded PRNG (Mulberry32) ──────────────────────────────────────────────────
 
@@ -119,6 +165,10 @@ interface DemoProfile {
   bills: Array<{ name: string; category: string; amount: number; dueDate: number }>;
   goals: Array<{ name: string; category: string; target: number; current: number; months: number; priority: string }>;
   savingsTransfers?: Array<{ category: string; desc: string; amount: number; accountKey: string; sourceKey: string }>;
+  /** First Home Savings Account — only set for pre-homeownership personas actively saving for a down payment. */
+  hasFHSA?: boolean;
+  /** RESP beneficiary — only set when the profile's existing accounts/goals already reference a named child/RESP. */
+  respBeneficiary?: { name: string; birthYear: number };
 }
 
 // ── 10 Profiles ───────────────────────────────────────────────────────────────
@@ -272,6 +322,7 @@ export const PROFILES: DemoProfile[] = [
       { name: "Emergency Fund 3 Months", category: "emergency-fund", target: 12000, current: 6800, months: 18, priority: "high" },
       { name: "Vacation to Disneyland", category: "vacation", target: 4000, current: 500, months: 12, priority: "medium" },
     ],
+    respBeneficiary: { name: "Emma", birthYear: new Date().getFullYear() - 8 },
   },
 
   // ── 4. The Young Professional Building Wealth ─────────────────────────────
@@ -325,6 +376,7 @@ export const PROFILES: DemoProfile[] = [
       { name: "Down Payment Fund",   category: "home",           target: 80000, current: 14500, months: 36, priority: "high" },
       { name: "Pay Off Car Loan",    category: "debt-payoff",    target: 14200, current: 5000,  months: 20, priority: "medium" },
     ],
+    hasFHSA: true,
   },
 
   // ── 5. The Average Canadian Family ──────────────────────────────────────────
@@ -651,13 +703,45 @@ export const PROFILES: DemoProfile[] = [
 
 // ── Transaction generator ─────────────────────────────────────────────────────
 
+// Annual compounding rates applied backward in time so a long (e.g. 7-year)
+// history shows income/spending actually growing year over year, instead of
+// a flat repeat of the same 12-month pattern.
+const ANNUAL_RAISE = 0.025;
+const ANNUAL_INFLATION = 0.02;
+
+// Realistic Canadian consumer credit limits — revolving-credit account types
+// (unlike installment loans/mortgages) receive open-ended spending in this
+// generator, so without a cap a long window compounds into an implausible
+// balance no real issuer would extend (e.g. $57K on a starter credit card
+// over 7 years). Once a card hits its limit, further spending routed to it
+// is redirected to chequing instead — "declined, paid by debit" — which is
+// also the more realistic behavior for an over-extended persona than an
+// ever-climbing balance.
+const CREDIT_LIMIT: Partial<Record<string, number>> = {
+  "credit-card": 15000,
+  "line-of-credit": 20000,
+};
+
 function buildTransactions(
   userId: any,
   acctMap: Map<string, any>,
-  profile: DemoProfile
+  profile: DemoProfile,
+  months: number
 ): any[] {
   const txns: any[] = [];
-  const LIABILITY_TYPES = new Set(["credit-card", "line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
+  const typeByKey = new Map(profile.accounts.map((a) => [a.key, a.type]));
+
+  // Running balance for every liability account, in chronological order (the
+  // month loop below already runs oldest→newest). Used two ways: (1) cap
+  // revolving-credit types at a realistic limit — see CREDIT_LIMIT above —
+  // and (2) stop generating further payments on an installment loan
+  // (auto/student/personal) once it's actually paid off, so a flat monthly
+  // payment amount authored for a 3-year profile doesn't keep "paying" a
+  // loan for years after its balance would realistically hit zero.
+  const liabilityBalance = new Map<string, number>();
+  for (const acct of profile.accounts) {
+    if (LIABILITY_TYPES.has(acct.type)) liabilityBalance.set(acct.key, acct.openingBalance);
+  }
 
   const add = (
     type: "income" | "expense",
@@ -672,7 +756,20 @@ function buildTransactions(
     txns.push({ userId, accountId, type, amount: parseFloat(amount.toFixed(2)), category, description, date, source: "manual" });
   };
 
-  // ── Opening balances (36 months ago) ──────────────────────────────────────────
+  // Routes a card expense to chequing instead once the card is at its limit,
+  // and keeps the running balance in sync either way.
+  const addCardExpense = (amount: number, category: string, description: string, date: Date, accountKey: string) => {
+    const limit = CREDIT_LIMIT[typeByKey.get(accountKey) ?? ""];
+    const balance = liabilityBalance.get(accountKey) ?? 0;
+    if (limit !== undefined && balance >= limit) {
+      add("expense", amount, category, description, date, profile.payAccountKey);
+      return;
+    }
+    add("expense", amount, category, description, date, accountKey);
+    if (liabilityBalance.has(accountKey)) liabilityBalance.set(accountKey, balance + amount);
+  };
+
+  // ── Opening balances (`months` months ago) ────────────────────────────────────
   for (const acct of profile.accounts) {
     if (acct.openingBalance <= 0) continue;
     const accountId = acctMap.get(acct.key);
@@ -685,19 +782,22 @@ function buildTransactions(
       amount: acct.openingBalance,
       category: isLiability ? "Opening Balance (Debt)" : "Opening Balance",
       description: `Opening Balance — ${acct.name}`,
-      date: txnDate(36, 1),
+      date: txnDate(months, 1),
       source: "manual",
     });
   }
 
-  // ── Pay dates over 36 months ──────────────────────────────────────────────────
-  const pays = payDates(36);
+  // ── Pay dates over the full window — compounding raise year over year ────────
+  const pays = payDates(months);
   for (const date of pays) {
-    add("income", rnd(profile.netPayBiweekly * 0.96, profile.netPayBiweekly * 1.04), "Employment Income", profile.payDesc, date, profile.payAccountKey);
+    const monthsAgoForPay = Math.round((_now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+    const raiseDiscount = Math.pow(1 + ANNUAL_RAISE, -(monthsAgoForPay / 12));
+    const basePay = profile.netPayBiweekly * raiseDiscount;
+    add("income", rnd(basePay * 0.96, basePay * 1.04), "Employment Income", profile.payDesc, date, profile.payAccountKey);
   }
 
   // ── GST/HST Credit (quarterly — Jan, Apr, Jul, Oct) ──────────────────────────
-  for (let m = 35; m >= 0; m--) {
+  for (let m = months - 1; m >= 0; m--) {
     const base = new Date(_now);
     base.setDate(1);
     base.setMonth(base.getMonth() - m);
@@ -710,15 +810,16 @@ function buildTransactions(
     }
   }
 
-  // ── Monthly spending rules ────────────────────────────────────────────────────
-  for (let m = 35; m >= 0; m--) {
+  // ── Monthly spending rules — compounding inflation discount further back ─────
+  for (let m = months - 1; m >= 0; m--) {
+    const inflationDiscount = Math.pow(1 + ANNUAL_INFLATION, -(m / 12));
     for (const rule of profile.spending) {
       const count = Math.round(rule.perMonth + rnd(-0.5, 0.5));
       for (let i = 0; i < count; i++) {
         const day = rndInt(1, 28);
-        const amount = rnd(rule.min, rule.max);
+        const amount = rnd(rule.min, rule.max) * inflationDiscount;
         const desc = pick(rule.descriptions);
-        add("expense", amount, rule.category, desc, txnDate(m, day), rule.accountKey);
+        addCardExpense(amount, rule.category, desc, txnDate(m, day), rule.accountKey);
       }
     }
 
@@ -741,19 +842,25 @@ function buildTransactions(
       }
     }
 
-    // ── Liability payments ──────────────────────────────────────────────────────
+    // ── Liability payments — stop once an installment loan is paid off ──────────
     for (const lp of profile.liabilityPayments) {
       const sourceId = acctMap.get(lp.sourceKey);
       const liabId = acctMap.get(lp.accountKey);
       if (!sourceId || !liabId) continue;
+      const isRevolving = CREDIT_LIMIT[typeByKey.get(lp.accountKey) ?? ""] !== undefined;
+      const remaining = liabilityBalance.get(lp.accountKey) ?? 0;
+      if (!isRevolving && remaining <= 0) continue; // installment loan already paid off — no more payments
+
+      const payment = isRevolving ? lp.monthly : Math.min(lp.monthly, remaining);
       // Debit from chequing
-      txns.push({ userId, accountId: sourceId, type: "expense", amount: lp.monthly, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
+      txns.push({ userId, accountId: sourceId, type: "expense", amount: payment, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
       // Credit (payment) on liability
-      txns.push({ userId, accountId: liabId, type: "income", amount: lp.monthly, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
+      txns.push({ userId, accountId: liabId, type: "income", amount: payment, category: "Debt Payment", description: lp.desc, date: txnDate(m, 27), source: "manual" });
+      liabilityBalance.set(lp.accountKey, remaining - payment);
     }
 
     // ── Random one-off events (healthcare, car repairs, gifts, etc.) ──────────
-    if (Math.random() < 0.4) {
+    if (_rng() < 0.4) {
       const oneOffs = [
         { cat: "Healthcare", descs: ["Dental Cleaning — Dentalcorp", "Optometrist", "Physiotherapy"], min: 80, max: 350 },
         { cat: "Auto", descs: ["Canadian Tire Auto Service", "Speedy Auto Service", "Oil Change"], min: 60, max: 400 },
@@ -762,7 +869,7 @@ function buildTransactions(
         { cat: "Education", descs: ["Udemy Course", "LinkedIn Learning", "Book Purchase"], min: 15, max: 150 },
       ];
       const ev = pick(oneOffs);
-      add("expense", rnd(ev.min, ev.max), ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
+      add("expense", rnd(ev.min, ev.max) * inflationDiscount, ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
     }
   }
 
@@ -771,8 +878,7 @@ function buildTransactions(
 
 // ── Net worth snapshot builder ────────────────────────────────────────────────
 
-function buildSnapshots(userId: any, profile: DemoProfile): any[] {
-  const LIABILITY_TYPES = new Set(["credit-card", "line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
+function buildSnapshots(userId: any, profile: DemoProfile, months: number): any[] {
   const snapshots: any[] = [];
 
   // Compute rough asset/liability totals from opening balances
@@ -782,10 +888,12 @@ function buildSnapshots(userId: any, profile: DemoProfile): any[] {
     else baseAssets += acct.openingBalance;
   }
 
-  // Generate quarterly snapshots over 3 years
-  for (let m = 36; m >= 0; m -= 3) {
-    const growthFactor = 1 + (0.005 * (36 - m)); // slight growth over time
-    const paydownFactor = 1 - (0.01 * (36 - m)); // liabilities decrease over time
+  // Quarterly snapshots over the full window — true compounding (not a linear
+  // approximation) so longer histories show realistic growth/paydown curves.
+  for (let m = months; m >= 0; m -= 3) {
+    const yearsElapsed = (months - m) / 12;
+    const growthFactor = Math.pow(1.02, yearsElapsed); // ~2%/year asset growth
+    const paydownFactor = Math.pow(0.94, yearsElapsed); // ~6%/year liability paydown
     const totalAssets = Math.round(baseAssets * growthFactor);
     const totalLiabilities = Math.max(0, Math.round(baseLiabilities * paydownFactor));
     const netWorth = totalAssets - totalLiabilities;
@@ -823,6 +931,251 @@ function buildSnapshots(userId: any, profile: DemoProfile): any[] {
   return snapshots;
 }
 
+// ── Balance helper ────────────────────────────────────────────────────────────
+// Replicates the exact formula the app itself uses when it lazily recalculates
+// Account.balance from transactions (see getBalanceDelta in
+// server/src/routes/transactions.ts). Account docs are inserted with
+// balance: 0 and only get corrected on the next GET /accounts, so anything
+// seeded here that needs a "current balance" (Debt, Property, Investment)
+// must compute it independently, the same way, to stay consistent with what
+// the UI will show.
+
+function computeFinalBalance(txns: any[], accountId: any, isLiability: boolean): number {
+  return txns.reduce((sum, t) => {
+    if (String(t.accountId) !== String(accountId)) return sum;
+    const baseDelta = t.type === "income" ? t.amount : -t.amount;
+    return sum + (isLiability ? -baseDelta : baseDelta);
+  }, 0);
+}
+
+// ── Debts + Properties ────────────────────────────────────────────────────────
+
+async function buildDebtsAndProperties(
+  userId: any,
+  acctMap: Map<string, any>,
+  profile: DemoProfile,
+  txns: any[],
+  months: number
+): Promise<void> {
+  for (const acctDef of profile.accounts) {
+    if (!LIABILITY_TYPES.has(acctDef.type)) continue;
+    const accountId = acctMap.get(acctDef.key);
+    if (!accountId) continue;
+
+    const finalBalance = Math.max(0, Math.round(computeFinalBalance(txns, accountId, true) * 100) / 100);
+    const defaults = DEBT_DEFAULTS[acctDef.type] ?? { debtType: "other" as const, interestRate: 10, termMonths: 60, label: acctDef.type };
+    const matchingPayment = profile.liabilityPayments.find((lp) => lp.accountKey === acctDef.key);
+    const minimumPayment = matchingPayment?.monthly ?? amortizedPayment(finalBalance, defaults.interestRate, defaults.termMonths);
+
+    const debt = await Debt.create({
+      userId,
+      name: acctDef.name,
+      type: defaults.debtType,
+      principal: acctDef.openingBalance,
+      currentBalance: finalBalance,
+      interestRate: defaults.interestRate,
+      minimumPayment,
+      dueScheduleType: "monthly",
+      lender: acctDef.institution,
+    } as any);
+
+    if (acctDef.type === "mortgage") {
+      const isBusiness = /business/i.test(acctDef.name);
+      const purchasePrice = Math.round(acctDef.openingBalance / 0.8); // assume 20% down payment
+      const yearsOwned = months / 12;
+      const currentEstimatedValue = Math.round(purchasePrice * Math.pow(1.035, yearsOwned)); // ~3.5%/year appreciation
+      await Property.create({
+        userId,
+        nickname: isBusiness ? "Business Property" : `${profile.lastName} Family Home`,
+        type: isBusiness ? "commercial" : "primary-residence",
+        city: PROVINCE_CITY[profile.province] ?? profile.province,
+        province: profile.province,
+        purchasePrice,
+        purchaseDate: txnDate(months, 15),
+        currentEstimatedValue,
+        linkedMortgageDebtId: debt._id,
+        annualPropertyTax: Math.round(currentEstimatedValue * 0.01),
+      } as any);
+    }
+  }
+}
+
+// ── Recurring transactions ────────────────────────────────────────────────────
+
+async function buildRecurringTransactions(
+  userId: any,
+  acctMap: Map<string, any>,
+  profile: DemoProfile
+): Promise<void> {
+  const nextMonthly = (dayOfMonth: number): Date => {
+    const d = new Date(_now);
+    d.setDate(Math.min(dayOfMonth, 28));
+    if (d <= _now) d.setMonth(d.getMonth() + 1);
+    return d;
+  };
+
+  const payAccountId = acctMap.get(profile.payAccountKey);
+  if (payAccountId) {
+    const nextPay = new Date(_now);
+    nextPay.setDate(nextPay.getDate() + 14);
+    await RecurringTransaction.create({
+      userId, name: profile.payDesc, amount: Math.round(profile.netPayBiweekly * 100) / 100,
+      type: "income", category: "Employment Income", frequency: "biweekly",
+      dayOfMonth: 1, nextDueDate: nextPay, accountId: payAccountId, isActive: true,
+    } as any);
+  }
+
+  for (const bill of profile.bills) {
+    if (!payAccountId) continue;
+    await RecurringTransaction.create({
+      userId, name: bill.name, amount: bill.amount, type: "expense",
+      category: bill.category, frequency: "monthly", dayOfMonth: bill.dueDate,
+      nextDueDate: nextMonthly(bill.dueDate), accountId: payAccountId, isActive: true,
+    } as any);
+  }
+
+  for (const st of profile.savingsTransfers ?? []) {
+    const accountId = acctMap.get(st.sourceKey);
+    if (!accountId) continue;
+    await RecurringTransaction.create({
+      userId, name: st.desc, amount: st.amount, type: "expense",
+      category: st.category, frequency: "monthly", dayOfMonth: 3,
+      nextDueDate: nextMonthly(3), accountId, isActive: true,
+    } as any);
+  }
+}
+
+// ── Investments + tax-wrapper tracker accounts ───────────────────────────────
+
+async function buildInvestmentsAndTrackers(
+  userId: any,
+  acctMap: Map<string, any>,
+  profile: DemoProfile,
+  txns: any[],
+  months: number,
+  riskProfile: "conservative" | "moderate" | "aggressive"
+): Promise<void> {
+  const allocation = getRiskProfile(riskProfile);
+  const etfs = getETFRecommendations(allocation).filter((e) => e.allocation > 0);
+  const yearsHeld = Math.max(1, months / 12);
+  const currentYear = _now.getFullYear();
+
+  for (const acctDef of profile.accounts) {
+    if (!TAX_WRAPPER_TYPES.has(acctDef.type)) continue;
+    const accountId = acctMap.get(acctDef.key);
+    if (!accountId) continue;
+
+    const finalBalance = Math.max(0, Math.round(computeFinalBalance(txns, accountId, false) * 100) / 100);
+    if (finalBalance <= 0) continue;
+
+    const accountType = acctDef.type === "investment" ? "non-registered" : (acctDef.type as "tfsa" | "rrsp");
+    const totalCost = Math.round(finalBalance * 0.85 * 100) / 100; // assume ~15% unrealized gain
+    const taxAccount = await TaxAccount.create({
+      userId, accountType, accountName: acctDef.name, linkedAccountId: accountId,
+      totalCost, currentValue: finalBalance, unrealizedGains: finalBalance - totalCost, realizedGains: 0,
+      tfsaAnnualLimit: 7000, rrspContributionLimit: 31560,
+    } as any);
+
+    // Size holdings off the persona's risk allocation — same catalog the
+    // Investment Recommendations page itself would suggest.
+    const holdings: Array<{ symbol: string; name: string; type: string; quantity: number; purchasePrice: number; currentPrice: number; currentValue: number }> = [];
+    for (const etf of etfs) {
+      const market = ETF_MARKET[etf.symbol] ?? { price: 50, annualReturn: 0.05 };
+      const currentValue = Math.round(finalBalance * (etf.allocation / 100) * 100) / 100;
+      if (currentValue <= 0) continue;
+      const quantity = Math.max(1, Math.round(currentValue / market.price));
+      const purchasePrice = Math.round((market.price / Math.pow(1 + market.annualReturn, yearsHeld)) * 100) / 100;
+      holdings.push({ symbol: etf.symbol, name: etf.name, type: etf.type, quantity, purchasePrice, currentPrice: market.price, currentValue });
+    }
+
+    for (const h of holdings) {
+      const totalCostH = Math.round(h.quantity * h.purchasePrice * 100) / 100;
+      await Investment.create({
+        userId, taxAccountId: taxAccount._id, accountId,
+        symbol: h.symbol, name: h.name, type: h.type === "cash" ? "cash" : "etf",
+        purchaseDate: txnDate(months, 10), purchasePrice: h.purchasePrice, quantity: h.quantity, totalCost: totalCostH,
+        currentPrice: h.currentPrice, currentValue: h.currentValue,
+        unrealizedGain: Math.round((h.currentValue - totalCostH) * 100) / 100,
+        unrealizedGainPercent: totalCostH > 0 ? Math.round(((h.currentValue - totalCostH) / totalCostH) * 1000) / 10 : 0,
+        taxable: accountType === "non-registered", currency: "CAD",
+      } as any);
+    }
+
+    if (acctDef.type === "tfsa" || acctDef.type === "rrsp") {
+      const matchingContribution = profile.savingsTransfers?.find((st) => st.accountKey === acctDef.key)?.amount ?? Math.round(finalBalance * 0.05);
+      const yearsOfContrib = Math.min(Math.ceil(yearsHeld), 6);
+      const contributions = Array.from({ length: yearsOfContrib }, (_, i) => ({
+        year: currentYear - i, amount: Math.round(matchingContribution * 12), date: new Date(currentYear - i, 2, 1),
+      }));
+
+      if (acctDef.type === "tfsa") {
+        await TFSAAccount.create({
+          userId, accountName: acctDef.name, institution: acctDef.institution, balance: finalBalance, currency: "CAD",
+          contributions, withdrawals: [], lifetimeContributionRoom: Math.max(0, 95000 - finalBalance),
+          annualLimit: 7000, currentYearUsed: contributions[0]?.amount ?? 0,
+          investmentHoldings: holdings.map((h) => ({ symbol: h.symbol, quantity: h.quantity, purchasePrice: h.purchasePrice, currentValue: h.currentValue })),
+        } as any);
+      } else {
+        await RRSPAccount.create({
+          userId, accountName: acctDef.name, institution: acctDef.institution, balance: finalBalance, currency: "CAD",
+          contributions, withdrawals: [], lifetimeContributionRoom: Math.max(0, 200000 - finalBalance),
+          deductionLimit: 31560, annualContributionLimit: 31560, currentYearUsed: contributions[0]?.amount ?? 0,
+          isAccountOwner: true,
+          investmentHoldings: holdings.map((h) => ({ symbol: h.symbol, quantity: h.quantity, adjustedCostBase: h.purchasePrice, currentValue: h.currentValue })),
+        } as any);
+      }
+    }
+  }
+
+  // ── FHSA (flagged profiles only) ────────────────────────────────────────────
+  if (profile.hasFHSA) {
+    const yearsContributed = Math.min(Math.ceil(yearsHeld), 3);
+    const contributions = Array.from({ length: yearsContributed }, (_, i) => ({
+      year: currentYear - i, amount: 8000, date: new Date(currentYear - i, 1, 1),
+    }));
+    const balance = Math.min(40000, contributions.reduce((s, c) => s + c.amount, 0));
+    const conservativeAllocation = getRiskProfile("conservative");
+    const fhsaEtfs = getETFRecommendations(conservativeAllocation).filter((e) => e.allocation > 0).slice(0, 2);
+    const fhsaHoldings = fhsaEtfs.map((etf) => {
+      const market = ETF_MARKET[etf.symbol] ?? { price: 50, annualReturn: 0.03 };
+      const currentValue = Math.round(balance * (etf.allocation / 100));
+      return { symbol: etf.symbol, quantity: Math.max(1, Math.round(currentValue / market.price)), purchasePrice: market.price, currentValue };
+    });
+    await FHSAAccount.create({
+      userId, accountName: "FHSA — First Home Savings", balance, currency: "CAD",
+      contributions, withdrawals: [], annualLimit: 8000, lifetimeLimit: 40000,
+      currentYearUsed: contributions[0]?.amount ?? 0, lifetimeUsed: balance,
+      firstTimeHomeBuyerStatus: true, homeWithdrawalEligible: false,
+      investmentHoldings: fhsaHoldings,
+    } as any);
+  }
+
+  // ── RESP (flagged profiles only) ─────────────────────────────────────────────
+  if (profile.respBeneficiary) {
+    const respAcctDef = profile.accounts.find((a) => a.type === "investment" && /resp/i.test(a.name));
+    const respAccountId = respAcctDef ? acctMap.get(respAcctDef.key) : undefined;
+    const balance = respAccountId
+      ? Math.max(0, Math.round(computeFinalBalance(txns, respAccountId, false) * 100) / 100)
+      : 0;
+    const yearsOfContrib = Math.min(Math.ceil(yearsHeld), 10);
+    const respContribution = profile.savingsTransfers?.find((st) => respAcctDef && st.accountKey === respAcctDef.key)?.amount ?? 200;
+    const contributions = Array.from({ length: yearsOfContrib }, (_, i) => ({
+      year: currentYear - i, amount: Math.round(respContribution * 12), date: new Date(currentYear - i, 5, 1),
+    }));
+    const grants = contributions.map((c) => ({ year: c.year, amount: Math.round(c.amount * 0.2), date: c.date, type: "CESG" as const }));
+    await RESPAccount.create({
+      userId, accountName: "RESP", beneficiaryName: profile.respBeneficiary.name,
+      beneficiaryBirthDate: new Date(profile.respBeneficiary.birthYear, 5, 15),
+      beneficiarySIN: "000-000-000", balance, currency: "CAD",
+      contributions, grants, withdrawals: [],
+      annualContributionAllowance: 50000, lifetimeContributionLimit: 50000,
+      currentYearContribution: contributions[0]?.amount ?? 0,
+      cumulativeGrantRoom: Math.max(0, 7200 - grants.reduce((s, g) => s + g.amount, 0)),
+      investmentHoldings: [],
+    } as any);
+  }
+}
+
 // ── Seed options ──────────────────────────────────────────────────────────────
 
 export interface SeedOpts {
@@ -830,13 +1183,17 @@ export interface SeedOpts {
   rng?: () => number;
   /** Base date for transaction history — omit to use current date */
   baseDate?: Date;
+  /** Years of history to generate — 1, 3, 5, or 7. Defaults to 3. */
+  years?: 1 | 3 | 5 | 7;
 }
 
 // ── Data-only seeder (for an EXISTING user — no User doc created) ─────────────
 
-export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: SeedOpts): Promise<void> {
+export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: SeedOpts): Promise<{ transactionCount: number }> {
   _rng = opts?.rng ?? Math.random;
   _now = opts?.baseDate ?? new Date();
+  const years = opts?.years ?? 3;
+  const months = years * 12;
 
   const acctMap = new Map<string, any>();
   for (const def of profile.accounts) {
@@ -847,7 +1204,7 @@ export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: 
     acctMap.set(def.key, acct._id);
   }
 
-  const txns = buildTransactions(userId, acctMap, profile);
+  const txns = buildTransactions(userId, acctMap, profile, months);
   await Transaction.insertMany(txns);
 
   const now = new Date();
@@ -874,17 +1231,23 @@ export async function seedDataForUser(userId: any, profile: DemoProfile, opts?: 
       targetDate, priority: g.priority || "medium", status: "active",
     });
   }
-  const snapshots = buildSnapshots(userId, profile);
+  const snapshots = buildSnapshots(userId, profile, months);
   await NetWorthSnapshot.insertMany(snapshots);
+
+  // Full feature coverage: debts/properties, recurring transactions,
+  // investments + the TFSA/RRSP/FHSA/RESP tracker models.
+  await buildDebtsAndProperties(userId, acctMap, profile, txns, months);
+  await buildRecurringTransactions(userId, acctMap, profile);
+  const profileIdx = PROFILES.indexOf(profile);
+  const riskProfile = RISK_BY_PROFILE_INDEX[profileIdx] ?? "moderate";
+  await buildInvestmentsAndTrackers(userId, acctMap, profile, txns, months, riskProfile);
+
+  return { transactionCount: txns.length };
 }
 
 // ── Seeder for a single profile ───────────────────────────────────────────────
 
 export async function seedProfile(profile: DemoProfile, passwordHash: string, opts?: SeedOpts): Promise<void> {
-  // Apply PRNG and base date for this run (module-level so helpers can use them)
-  _rng  = opts?.rng      ?? Math.random;
-  _now  = opts?.baseDate ?? new Date();
-
   const existing = await User.findOne({ email: profile.email });
   if (existing) {
     console.log(`  ⏭  ${profile.email} already exists — skipping`);
@@ -901,55 +1264,8 @@ export async function seedProfile(profile: DemoProfile, passwordHash: string, op
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userId = user._id as any;
 
-  // Create accounts
-  const acctMap = new Map<string, any>();
-  for (const def of profile.accounts) {
-    const acct = await Account.create({
-      userId, name: def.name, type: def.type,
-      institution: def.institution, balance: 0, currency: "CAD",
-    } as any);
-    acctMap.set(def.key, acct._id);
-  }
-
-  // Insert transactions in bulk
-  const txns = buildTransactions(userId, acctMap, profile);
-  await Transaction.insertMany(txns);
-
-  // Budgets
-  const now = new Date();
-  for (const b of profile.budgets) {
-    await Budget.create({
-      userId, category: b.category, amount: b.amount,
-      period: "monthly", isActive: true,
-      startDate: new Date(now.getFullYear(), now.getMonth(), 1),
-    });
-  }
-
-  // Bills
-  for (const b of profile.bills) {
-    await Bill.create({
-      userId, name: b.name, category: b.category,
-      amount: b.amount, frequency: "monthly",
-      dueDate: b.dueDate, status: "active", isAutoPay: true,
-    });
-  }
-
-  // Goals
-  for (const g of profile.goals) {
-    const targetDate = new Date();
-    targetDate.setMonth(targetDate.getMonth() + g.months);
-    await Goal.create({
-      userId, name: g.name, category: g.category,
-      targetAmount: g.target, currentAmount: g.current,
-      targetDate, priority: g.priority || "medium", status: "active",
-    });
-  }
-
-  // Net worth snapshots
-  const snapshots = buildSnapshots(userId, profile);
-  await NetWorthSnapshot.insertMany(snapshots);
-
-  console.log(`  ✓  ${profile.email} — ${txns.length} transactions, ${profile.accounts.length} accounts`);
+  const { transactionCount } = await seedDataForUser(userId, profile, opts);
+  console.log(`  ✓  ${profile.email} — ${transactionCount} transactions, ${profile.accounts.length} accounts`);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -983,7 +1299,7 @@ async function main(): Promise<void> {
       demoProfileIndex: DEFAULT_PROFILE_INDEX,
     });
     await seedDataForUser(user._id, PROFILES[DEFAULT_PROFILE_INDEX - 1]);
-    console.log(`✓  ${DEMO_EMAIL} created with "${PROFILES[DEFAULT_PROFILE_INDEX - 1].firstName}'s" profile (3 years of history)`);
+    console.log(`✓  ${DEMO_EMAIL} created with "${PROFILES[DEFAULT_PROFILE_INDEX - 1].firstName}'s" profile (default 3 years of history)`);
   }
 
   console.log(`\nDone!`);

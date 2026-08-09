@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Goal } from '../models/Goal';
 import { requireLogin } from '../middleware/requireLogin';
+import { getLiveFinancials } from '../utils/liveFinancials';
 
 const router = Router();
 router.use(requireLogin);
@@ -12,8 +13,11 @@ router.use(requireLogin);
 router.get('/', async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
-    const goals = await Goal.find({ userId }).sort({ priority: -1, targetDate: 1 });
-    
+    const [goals, live] = await Promise.all([
+      Goal.find({ userId }).sort({ priority: -1, targetDate: 1 }),
+      getLiveFinancials(userId),
+    ]);
+
     const goalsWithProgress = goals.map(goal => ({
       ...goal.toObject(),
       progressPercentage: Math.min(100, (goal.currentAmount / goal.targetAmount) * 100),
@@ -21,7 +25,17 @@ router.get('/', async (req, res, next) => {
       recommendedMonthlyContribution: calculateRecommendedMonthly(goal),
     }));
 
-    res.json({ goals: goalsWithProgress });
+    // Framework rule: goal contributions should fit within real surplus — warn, don't cap.
+    const activeGoals = goalsWithProgress.filter(g => g.status === 'active');
+    const totalRecommendedMonthly = activeGoals.reduce((sum, g) => sum + g.recommendedMonthlyContribution, 0);
+    const liveMonthlySurplus = Math.max(0, live.monthlyCashFlow);
+
+    res.json({
+      goals: goalsWithProgress,
+      totalRecommendedMonthly,
+      liveMonthlySurplus,
+      overCapacity: totalRecommendedMonthly > liveMonthlySurplus,
+    });
   } catch (err) {
     next(err);
   }

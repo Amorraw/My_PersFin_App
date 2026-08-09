@@ -1,30 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
+import { useState } from 'react';
+import { useFinancialData } from '../contexts/FinancialDataContext';
 import { api } from '../api';
 import './Goals.css';
 import { ProgressGauge, GaugeRow, fmtMoney } from '../components/charts';
+import type { Goal } from '../types';
 
-interface Goal {
-  _id: string;
-  name: string;
-  description?: string;
-  category: string;
-  targetAmount: number;
-  currentAmount: number;
-  targetDate: string;
-  priority: string;
-  status: string;
-  progressPercentage: number;
-  monthsRemaining: number;
-  recommendedMonthlyContribution: number;
-}
+// Top financial goals most people set, mapped to this app's existing goal
+// categories — picking one prefills the name/category below (still editable).
+const GOAL_PRESETS: { label: string; name: string; category: string }[] = [
+  { label: 'Emergency Fund',            name: 'Emergency Fund',            category: 'emergency-fund' },
+  { label: 'Pay Off Debt',              name: 'Pay Off Debt',              category: 'debt-payoff' },
+  { label: 'Down Payment for a Home',   name: 'Down Payment for a Home',   category: 'home' },
+  { label: 'Home Renovation',           name: 'Home Renovation',           category: 'home' },
+  { label: 'New Car',                   name: 'New Car',                   category: 'car' },
+  { label: 'Retirement Savings',        name: 'Retirement Savings',        category: 'investment' },
+  { label: 'Education / Tuition Fund',  name: 'Education / Tuition Fund',  category: 'education' },
+  { label: 'Wedding',                   name: 'Wedding',                   category: 'other' },
+  { label: 'Vacation / Travel',         name: 'Vacation / Travel',         category: 'vacation' },
+  { label: 'Starting a Business',       name: 'Starting a Business',       category: 'other' },
+];
+const OTHER_GOAL_TYPE = '__other__';
 
 export default function Goals() {
-  const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { goals, loading, refresh: refreshFinancials, monthlySurplus, totalRecommendedMonthlyGoals, goalsOverCapacity } = useFinancialData();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [goalType, setGoalType] = useState<string>(OTHER_GOAL_TYPE);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,19 +38,14 @@ export default function Goals() {
     notes: '',
   });
 
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const fetchGoals = async () => {
-    try {
-      const data = await api('/goals');
-      setGoals(data.goals);
-    } catch (err) {
-      console.error('Error fetching goals:', err);
-    } finally {
-      setLoading(false);
+  const handleGoalTypeChange = (value: string) => {
+    setGoalType(value);
+    if (value === OTHER_GOAL_TYPE) {
+      setFormData(prev => ({ ...prev, name: '' }));
+      return;
     }
+    const preset = GOAL_PRESETS.find(p => p.label === value);
+    if (preset) setFormData(prev => ({ ...prev, name: preset.name, category: preset.category }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,9 +82,10 @@ export default function Goals() {
         monthlyContribution: '',
         notes: '',
       });
+      setGoalType(OTHER_GOAL_TYPE);
       setEditingId(null);
       setShowForm(false);
-      fetchGoals();
+      refreshFinancials();
     } catch (err) {
       console.error('Error saving goal:', err);
       alert('Failed to save goal');
@@ -99,7 +96,7 @@ export default function Goals() {
     if (window.confirm('Delete this goal?')) {
       try {
         await api(`/goals/${id}`, { method: 'DELETE' });
-        fetchGoals();
+        refreshFinancials();
       } catch (err) {
         console.error('Error deleting goal:', err);
       }
@@ -118,6 +115,8 @@ export default function Goals() {
       monthlyContribution: '',
       notes: '',
     });
+    const matchedPreset = GOAL_PRESETS.find(p => p.name === goal.name);
+    setGoalType(matchedPreset ? matchedPreset.label : OTHER_GOAL_TYPE);
     setEditingId(goal._id);
     setShowForm(true);
   };
@@ -128,7 +127,7 @@ export default function Goals() {
         method: 'PATCH',
         body: JSON.stringify({ amount }),
       });
-      fetchGoals();
+      refreshFinancials();
     } catch (err) {
       console.error('Error updating progress:', err);
     }
@@ -157,6 +156,7 @@ export default function Goals() {
           onClick={() => {
             setShowForm(!showForm);
             setEditingId(null);
+            setGoalType(OTHER_GOAL_TYPE);
             setFormData({
               name: '',
               description: '',
@@ -176,6 +176,19 @@ export default function Goals() {
 
       {showForm && (
         <form className="goal-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Goal Type</label>
+            <select value={goalType} onChange={(e) => handleGoalTypeChange(e.target.value)}>
+              {GOAL_PRESETS.map(p => (
+                <option key={p.label} value={p.label}>{p.label}</option>
+              ))}
+              <option value={OTHER_GOAL_TYPE}>Other</option>
+            </select>
+            <small className="form-hint">
+              Pick a common goal to prefill the name and category below — both stay editable — or choose "Other" to enter your own.
+            </small>
+          </div>
+
           <div className="form-group">
             <label>Goal Name *</label>
             <input
@@ -265,6 +278,17 @@ export default function Goals() {
             {editingId ? 'Update Goal' : 'Create Goal'}
           </button>
         </form>
+      )}
+
+      {goalsOverCapacity && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", marginBottom: "1rem", fontSize: 13 }}>
+          <p style={{ margin: 0, color: "#b45309", fontWeight: 600 }}>
+            ⚠️ Your active goals need {fmtMoney(totalRecommendedMonthlyGoals)}/month combined, but your current cash-flow surplus is {fmtMoney(monthlySurplus)}/month.
+          </p>
+          <p style={{ margin: "6px 0 0", color: "#92400e" }}>
+            💡 Consider extending a target date, lowering a target amount, or increasing your surplus (see Debt Optimization and Budgets) — each goal's own numbers above are left untouched.
+          </p>
+        </div>
       )}
 
       {goals.length > 0 && (

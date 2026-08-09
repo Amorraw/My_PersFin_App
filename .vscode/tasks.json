@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "isBackground": true,
+      "presentation": { "group": "restart-all", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "isBackground": true,
+      "presentation": { "group": "restart-all", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "ML: dev",
+      "type": "shell",
+      "command": "py -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+      "options": { "cwd": "${workspaceFolder}/python-ml" },
+      "isBackground": true,
+      "presentation": { "group": "restart-all", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Restart all (Backend + Web + ML)",
+      "dependsOn": ["Backend: dev", "Web: dev", "ML: dev"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}

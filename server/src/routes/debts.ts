@@ -200,7 +200,7 @@ type DebtDefaults = {
   label: string;
 };
 
-const DEBT_DEFAULTS: Record<string, DebtDefaults> = {
+export const DEBT_DEFAULTS: Record<string, DebtDefaults> = {
   "credit-card":    { debtType: "credit-card",   interestRate: 19.99, termMonths: 60,  label: "Credit Card" },
   "line-of-credit": { debtType: "other",         interestRate: 7.50,  termMonths: 120, label: "Line of Credit" },
   "student-loan":   { debtType: "student-loan",  interestRate: 6.45,  termMonths: 114, label: "Student Loan" },
@@ -209,7 +209,7 @@ const DEBT_DEFAULTS: Record<string, DebtDefaults> = {
   "personal-loan":  { debtType: "personal-loan", interestRate: 11.99, termMonths: 48,  label: "Personal Loan" },
 };
 
-function amortizedPayment(balance: number, annualRate: number, termMonths: number): number {
+export function amortizedPayment(balance: number, annualRate: number, termMonths: number): number {
   const r = annualRate / 100 / 12;
   if (r === 0 || balance <= 0) return round2(balance / termMonths);
   const payment = balance * r * Math.pow(1 + r, termMonths) / (Math.pow(1 + r, termMonths) - 1);

@@ -1,8 +1,12 @@
 import { Router } from "express";
 import { PortfolioRecommendation } from "../models/PortfolioRecommendation";
 import { TaxAccount } from "../models/TaxAccount";
+import { Debt } from "../models/Debt";
+import { Goal } from "../models/Goal";
 import { requireLogin } from "../middleware/requireLogin";
 import * as investmentAdvisor from "../utils/investmentAdvisor";
+import { getLiveFinancials } from "../utils/liveFinancials";
+import { HIGH_INTEREST_DEBT_APR } from "../utils/financeConstants";
 
 const router = Router();
 
@@ -18,6 +22,7 @@ router.post("/analyze", async (req, res, next) => {
     const userId = (req.user as any)._id;
     const {
       currentNetWorth,
+      goalId,
       goalAmount,
       goalYear,
       currentAge,
@@ -25,17 +30,39 @@ router.post("/analyze", async (req, res, next) => {
       preferLowCost = true,
     } = req.body;
 
-    if (currentNetWorth == null || goalAmount == null || goalYear == null) {
+    // A linked goal supplies goalAmount/goalYear directly; an explicit body
+    // value still wins if the caller passes both.
+    let resolvedGoalAmount = goalAmount;
+    let resolvedGoalYear = goalYear;
+    if (goalId) {
+      const goal = await Goal.findOne({ _id: goalId, userId });
+      if (!goal) return res.status(404).json({ message: "Goal not found" });
+      resolvedGoalAmount = resolvedGoalAmount ?? goal.targetAmount;
+      resolvedGoalYear = resolvedGoalYear ?? new Date(goal.targetDate).getFullYear();
+    }
+
+    if (resolvedGoalAmount == null || resolvedGoalYear == null) {
       return res.status(400).json({ message: "Missing required parameters" });
     }
 
+    // Live readiness signals — never invest aggressively past what the
+    // framework considers safe (a real emergency fund, no high-interest debt)
+    const [live, debts] = await Promise.all([
+      getLiveFinancials(userId),
+      Debt.find({ userId }),
+    ]);
+    const resolvedNetWorth = currentNetWorth ?? live.netWorth;
+    const hasHighInterestDebt = debts.some((d) => d.interestRate >= HIGH_INTEREST_DEBT_APR);
+
     // Generate recommendation
     const recommendation = investmentAdvisor.generateInvestmentRecommendation(
-      currentNetWorth,
-      goalAmount,
-      goalYear,
+      resolvedNetWorth,
+      resolvedGoalAmount,
+      resolvedGoalYear,
       currentAge || 35,
-      retirementAge
+      retirementAge,
+      live.emergencyFundMonths,
+      hasHighInterestDebt
     );
 
     // Return recommendation directly without saving to database

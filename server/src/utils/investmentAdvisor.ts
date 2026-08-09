@@ -4,6 +4,8 @@
  * Provides goal-based asset allocation, ETF recommendations, and risk profiling
  */
 
+import { EMERGENCY_FUND_MIN_TO_INVEST_MONTHS } from "./financeConstants";
+
 export interface RiskProfile {
   profile: "conservative" | "moderate" | "aggressive";
   equities: number;
@@ -321,6 +323,40 @@ export function calculateSuccessProbability(
 }
 
 /**
+ * Assesses whether the framework's pre-investing conditions are met:
+ * a minimum emergency reserve and no outstanding high-interest debt. Either
+ * gap means a recommendation should shift one risk tier more conservative
+ * rather than silently suggesting an aggressive allocation.
+ */
+export function assessInvestmentReadiness(
+  emergencyFundMonths: number,
+  hasHighInterestDebt: boolean
+): { downgrade: boolean; warnings: string[] } {
+  const warnings: string[] = [];
+
+  if (emergencyFundMonths < EMERGENCY_FUND_MIN_TO_INVEST_MONTHS) {
+    warnings.push(
+      `⚠️ Your emergency fund is ${emergencyFundMonths.toFixed(1)} months of expenses — below the recommended ${EMERGENCY_FUND_MIN_TO_INVEST_MONTHS} months before taking on investment risk. This recommendation has been shifted to a more conservative allocation.`
+    );
+  }
+
+  if (hasHighInterestDebt) {
+    warnings.push(
+      `⚠️ You have high-interest debt outstanding. Paying that down typically beats a diversified portfolio's expected return, so this recommendation has been shifted to a more conservative allocation until it's cleared.`
+    );
+  }
+
+  return { downgrade: warnings.length > 0, warnings };
+}
+
+function downgradeRiskProfile(
+  profile: "conservative" | "moderate" | "aggressive"
+): "conservative" | "moderate" | "aggressive" {
+  if (profile === "aggressive") return "moderate";
+  return "conservative";
+}
+
+/**
  * Generate comprehensive investment recommendations
  */
 export function generateInvestmentRecommendation(
@@ -328,7 +364,9 @@ export function generateInvestmentRecommendation(
   goalAmount: number,
   goalYear: number,
   currentAge: number,
-  retirementAge: number
+  retirementAge: number,
+  emergencyFundMonths?: number,
+  hasHighInterestDebt?: boolean
 ): {
   riskProfile: "conservative" | "moderate" | "aggressive";
   allocation: RiskProfile;
@@ -343,7 +381,15 @@ export function generateInvestmentRecommendation(
   const yearsToRetirement = retirementAge - currentAge;
 
   // Recommend risk profile
-  const riskProfile = recommendRiskProfile(yearsToGoal, currentAge, retirementAge);
+  let riskProfile = recommendRiskProfile(yearsToGoal, currentAge, retirementAge);
+
+  // Downgrade if the framework's pre-investing conditions aren't met
+  let readinessWarnings: string[] = [];
+  if (emergencyFundMonths !== undefined && hasHighInterestDebt !== undefined) {
+    const readiness = assessInvestmentReadiness(emergencyFundMonths, hasHighInterestDebt);
+    if (readiness.downgrade) riskProfile = downgradeRiskProfile(riskProfile);
+    readinessWarnings = readiness.warnings;
+  }
 
   // Get asset allocation
   const allocation = getRiskProfile(riskProfile);
@@ -379,7 +425,7 @@ export function generateInvestmentRecommendation(
   );
 
   // Generate recommendations
-  const recommendations: string[] = [];
+  const recommendations: string[] = [...readinessWarnings];
 
   if (successProbability < 50) {
     recommendations.push(

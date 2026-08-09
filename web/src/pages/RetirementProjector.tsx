@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart, Area } from "recharts";
 import './RetirementProjector.css';
 import { fmtCADShort } from "../components/charts";
+import { useFinancialData } from "../contexts/FinancialDataContext";
 
 const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
@@ -110,6 +111,7 @@ function runMonteCarlo(currentAge: number, retirementAge: number, currentSavings
 }
 
 export default function RetirementProjector() {
+  const { netWorth } = useFinancialData();
   const [currentAge, setCurrentAge] = useState(35);
   const [retirementAge, setRetirementAge] = useState(65);
   const [currentSavings, setCurrentSavings] = useState(50000);
@@ -119,6 +121,15 @@ export default function RetirementProjector() {
   const [desiredIncome, setDesiredIncome] = useState(60000);
   const [cppMonthly, setCppMonthly] = useState(800);
   const [oasMonthly, setOasMonthly] = useState(698);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // One-time prefill from real net worth when it first arrives — this
+  // what-if tool's defaults stay untouched afterward.
+  useEffect(() => {
+    if (prefilled || !netWorth) return;
+    setPrefilled(true);
+    if (netWorth.netWorth > 0) setCurrentSavings(Math.round(netWorth.netWorth));
+  }, [netWorth, prefilled]);
 
   const result = useMemo(
     () => projectRetirement(currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturn, inflationRate, desiredIncome, cppMonthly, oasMonthly),
@@ -169,6 +180,11 @@ export default function RetirementProjector() {
           {inputRow("Current Age", currentAge, setCurrentAge, { min: 18, max: 80 })}
           {inputRow("Target Retirement Age", retirementAge, setRetirementAge, { min: currentAge + 1, max: 85 })}
           {inputRow("Current Savings (RRSP + TFSA + other)", currentSavings, setCurrentSavings, { min: 0, step: 5000, prefix: "$" })}
+          {prefilled && (
+            <p style={{ fontSize: "0.72rem", color: "var(--text-light)", margin: "-6px 0 8px" }}>
+              Prefilled from your real net worth — edit to explore a different scenario.
+            </p>
+          )}
           {inputRow("Monthly Contribution", monthlyContribution, setMonthlyContribution, { min: 0, step: 100, prefix: "$" })}
           {inputRow("Expected Annual Return", expectedReturn, setExpectedReturn, { min: 0, max: 15, step: 0.5, suffix: "%" })}
           {inputRow("Inflation Rate", inflationRate, setInflationRate, { min: 0, max: 10, step: 0.25, suffix: "%" })}

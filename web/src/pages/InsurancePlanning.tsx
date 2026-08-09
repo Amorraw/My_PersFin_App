@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
+import { useFinancialData } from "../contexts/FinancialDataContext";
 import { api } from "../api";
 import "./InsurancePlanning.css";
 
@@ -48,6 +49,7 @@ interface DentalResult {
 // ── component ───────────────────────────────────────────────────────────────
 export default function InsurancePlanning() {
   const { user } = useAuth();
+  const { debts, snapshot } = useFinancialData();
   const [tab, setTab] = useState<"life" | "disability" | "health">("life");
 
   // ── Life Insurance state ────────────────────────────────────────────────
@@ -56,9 +58,24 @@ export default function InsurancePlanning() {
     mortgageBalance: 0, childrenCount: 0, educationCostPerChild: 50000,
     groupLifeInsurance: 0, existingPolicies: 0, age: 35, isSmoker: false,
   });
+  const [lifeTouched, setLifeTouched] = useState(false);
   const [lifeResult, setLifeResult] = useState<LifeResult | null>(null);
   const [lifeLoading, setLifeLoading] = useState(false);
   const [lifeError, setLifeError] = useState("");
+
+  // Prefill debts/mortgage/income from real accounts, never overwriting a typed value.
+  useEffect(() => {
+    if (!lifeTouched && snapshot) {
+      const nonMortgageDebt = debts.filter((d) => d.type !== "mortgage").reduce((s, d) => s + d.currentBalance, 0);
+      const mortgageDebt = debts.filter((d) => d.type === "mortgage").reduce((s, d) => s + d.currentBalance, 0);
+      setLife((p) => ({
+        ...p,
+        debts: Math.round(nonMortgageDebt),
+        mortgageBalance: Math.round(mortgageDebt),
+        annualIncome: Math.round(snapshot.monthlyIncome * 12),
+      }));
+    }
+  }, [debts, snapshot, lifeTouched]);
 
   // ── Disability state ─────────────────────────────────────────────────────
   const [dis, setDis] = useState({
@@ -67,9 +84,16 @@ export default function InsurancePlanning() {
     hasPersonalPolicy: false, personalPolicyMonthly: 0,
     eligibleForCPPDisability: true, targetReplacementRate: 0.85,
   });
+  const [disTouched, setDisTouched] = useState(false);
   const [disResult, setDisResult] = useState<DisabilityResult | null>(null);
   const [disLoading, setDisLoading] = useState(false);
   const [disError, setDisError] = useState("");
+
+  useEffect(() => {
+    if (!disTouched && snapshot) {
+      setDis((p) => ({ ...p, grossMonthlyIncome: Math.round(snapshot.monthlyIncome) }));
+    }
+  }, [snapshot, disTouched]);
 
   // ── Dental / Health state ────────────────────────────────────────────────
   const [dental, setDental] = useState({
@@ -190,10 +214,10 @@ export default function InsurancePlanning() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.65rem" }}>
               <h3 style={{ marginTop: 0, fontSize: "0.75rem" }}>Your Details</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {numInput("Annual Income ($)", life.annualIncome, (v) => setLife(p => ({ ...p, annualIncome: v })))}
+                {numInput("Annual Income ($)", life.annualIncome, (v) => { setLifeTouched(true); setLife(p => ({ ...p, annualIncome: v })); }, { small: lifeTouched ? undefined : "Prefilled from this month's income × 12 — edit if different" })}
                 {numInput("Income Replacement (Years)", life.incomeReplacementYears, (v) => setLife(p => ({ ...p, incomeReplacementYears: v })), { min: 1, max: 40, small: "Years of income your family would need" })}
-                {numInput("Other Debts ($)", life.debts, (v) => setLife(p => ({ ...p, debts: v })), { small: "Credit cards, car loans — not mortgage" })}
-                {numInput("Mortgage Balance ($)", life.mortgageBalance, (v) => setLife(p => ({ ...p, mortgageBalance: v })))}
+                {numInput("Other Debts ($)", life.debts, (v) => { setLifeTouched(true); setLife(p => ({ ...p, debts: v })); }, { small: lifeTouched ? "Credit cards, car loans — not mortgage" : "Prefilled from your debts (excl. mortgage) — edit if this doesn't reflect your situation" })}
+                {numInput("Mortgage Balance ($)", life.mortgageBalance, (v) => { setLifeTouched(true); setLife(p => ({ ...p, mortgageBalance: v })); }, { small: lifeTouched ? undefined : "Prefilled from your mortgage debt" })}
                 {numInput("Number of Children", life.childrenCount, (v) => setLife(p => ({ ...p, childrenCount: v })), { min: 0, max: 10 })}
                 {numInput("Education Cost / Child ($)", life.educationCostPerChild, (v) => setLife(p => ({ ...p, educationCostPerChild: v })), { small: "Average 4-year post-secondary ≈ $50,000" })}
               </div>
@@ -347,7 +371,7 @@ export default function InsurancePlanning() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.65rem" }}>
               <h3 style={{ marginTop: 0, fontSize: "0.75rem" }}>Your Situation</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {numInput("Gross Monthly Income ($)", dis.grossMonthlyIncome, (v) => setDis(p => ({ ...p, grossMonthlyIncome: v })))}
+                {numInput("Gross Monthly Income ($)", dis.grossMonthlyIncome, (v) => { setDisTouched(true); setDis(p => ({ ...p, grossMonthlyIncome: v })); }, { small: disTouched ? undefined : "Prefilled from this month's income — edit if different" })}
                 <div className="form-group">
                   <label>Target Replacement Rate</label>
                   <select value={dis.targetReplacementRate} onChange={(e) => setDis(p => ({ ...p, targetReplacementRate: Number(e.target.value) }))}>

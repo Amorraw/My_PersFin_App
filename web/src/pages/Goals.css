@@ -12,6 +12,13 @@
 
 .goals-header h1 { font-size: 0.92rem; color: var(--text); margin: 0; }
 
+.form-hint {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-light);
+  margin-top: 3px;
+}
+
 .goal-form {
   background: var(--bg);
   padding: 10px;

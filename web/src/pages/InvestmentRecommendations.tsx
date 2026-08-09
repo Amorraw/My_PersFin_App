@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactElement } from "react";
 import { api } from "../api";
+import { useFinancialData } from "../contexts/FinancialDataContext";
+import { EmergencyFundBanner } from "../components/EmergencyFundBanner";
 import "./InvestmentRecommendations.css";
 import { DonutChart, TrendAreaChart, fmtMoney } from "../components/charts";
 
@@ -39,9 +41,12 @@ interface Recommendation {
 }
 
 export default function InvestmentRecommendations(): ReactElement {
+  const { netWorth, goals } = useFinancialData();
   const [goalAmount, setGoalAmount] = useState(500000);
   const [goalYear, setGoalYear] = useState(new Date().getFullYear() + 20);
   const [currentNetWorth, setCurrentNetWorth] = useState(50000);
+  const [netWorthTouched, setNetWorthTouched] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState("");
   const [currentAge, setCurrentAge] = useState(35);
   const [loading, setLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -52,6 +57,22 @@ export default function InvestmentRecommendations(): ReactElement {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
   const [successProbability, setSuccessProbability] = useState<number | null>(null);
 
+  // Prefill from real net worth, but never overwrite a value the user typed.
+  useEffect(() => {
+    if (!netWorthTouched && netWorth) {
+      setCurrentNetWorth(Math.round(netWorth.netWorth));
+    }
+  }, [netWorth, netWorthTouched]);
+
+  const selectGoal = (goalId: string) => {
+    setSelectedGoalId(goalId);
+    const goal = goals.find((g) => g._id === goalId);
+    if (goal) {
+      setGoalAmount(goal.targetAmount);
+      setGoalYear(new Date(goal.targetDate).getFullYear());
+    }
+  };
+
   const analyzeGoal = async () => {
     setLoading(true);
     try {
@@ -59,6 +80,7 @@ export default function InvestmentRecommendations(): ReactElement {
         method: "POST",
         body: JSON.stringify({
           currentNetWorth,
+          goalId: selectedGoalId || undefined,
           goalAmount,
           goalYear,
           currentAge,
@@ -90,6 +112,8 @@ export default function InvestmentRecommendations(): ReactElement {
         <p>Goal-based portfolio allocation and ETF recommendations</p>
       </div>
 
+      <EmergencyFundBanner />
+
       <div className="investment-section">
         <h2>Step 1: Define Your Investment Goal</h2>
         <div className="goal-inputs">
@@ -98,16 +122,34 @@ export default function InvestmentRecommendations(): ReactElement {
             <input
               type="number"
               value={currentNetWorth}
-              onChange={(e) => setCurrentNetWorth(Number(e.target.value))}
+              onChange={(e) => { setNetWorthTouched(true); setCurrentNetWorth(Number(e.target.value)); }}
               min="0"
             />
+            {netWorth && (
+              <small>
+                {netWorthTouched
+                  ? `Your live net worth is ${fmtMoney(netWorth.netWorth)}.`
+                  : `Prefilled from your accounts — edit if this doesn't reflect your situation.`}
+              </small>
+            )}
           </div>
+          {goals.length > 0 && (
+            <div className="input-group">
+              <label>Link to an Existing Goal (optional)</label>
+              <select value={selectedGoalId} onChange={(e) => selectGoal(e.target.value)}>
+                <option value="">— None, enter manually —</option>
+                {goals.map((g) => (
+                  <option key={g._id} value={g._id}>{g.name} ({fmtMoney(g.targetAmount)})</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="input-group">
             <label>Investment Goal ($)</label>
             <input
               type="number"
               value={goalAmount}
-              onChange={(e) => setGoalAmount(Number(e.target.value))}
+              onChange={(e) => { setSelectedGoalId(""); setGoalAmount(Number(e.target.value)); }}
               min="0"
             />
           </div>
@@ -116,7 +158,7 @@ export default function InvestmentRecommendations(): ReactElement {
             <input
               type="number"
               value={goalYear}
-              onChange={(e) => setGoalYear(Number(e.target.value))}
+              onChange={(e) => { setSelectedGoalId(""); setGoalYear(Number(e.target.value)); }}
               min={new Date().getFullYear()}
             />
             <small>{yearsToGoal} years from now</small>

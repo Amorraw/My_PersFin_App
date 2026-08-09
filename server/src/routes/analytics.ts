@@ -6,18 +6,13 @@ import { Debt } from "../models/Debt";
 import { Goal } from "../models/Goal";
 import { NetWorthSnapshot } from "../models/NetWorthSnapshot";
 import { requireAuth } from "../middleware/requireLogin";
+import { LIABILITY_TYPES } from "../utils/financeConstants";
+import { getLiveFinancials } from "../utils/liveFinancials";
 
 const router = Router();
 
 // All routes require authentication
 router.use(requireAuth);
-
-// Account types that represent liabilities, not assets.
-// Must stay in sync with the same constant in netWorth.ts and Accounts.tsx.
-const LIABILITY_TYPES = new Set([
-  'credit-card', 'line-of-credit', 'mortgage',
-  'auto-loan', 'personal-loan', 'student-loan',
-]);
 
 // Get spending by category
 router.get("/spending-by-category", async (req: Request, res: Response) => {
@@ -488,52 +483,12 @@ router.get("/goals-progress", async (req: Request, res: Response) => {
 router.get("/financial-snapshot", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any).id;
-    const now    = new Date();
-    const som    = new Date(now.getFullYear(), now.getMonth(), 1);
-    const eom    = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // Run all queries in parallel
-    const [accounts, debts, goals, incTxns, expTxns, snapshots] = await Promise.all([
-      Account.find({ userId }),
-      Debt.find({ userId }),
+    const [live, goals, snapshots] = await Promise.all([
+      getLiveFinancials(userId),
       Goal.find({ userId, status: "active" }),
-      Transaction.find({ userId, type: "income",  date: { $gte: som, $lte: eom } }),
-      Transaction.find({ userId, type: "expense", date: { $gte: som, $lte: eom } }),
       NetWorthSnapshot.find({ userId }).sort({ snapshotDate: -1 }).limit(6),
     ]);
-
-    // Asset / liability split from accounts
-    const assets = accounts
-      .filter(a => !LIABILITY_TYPES.has(a.type))
-      .reduce((s, a) => s + a.balance, 0);
-
-    const accountLiabilities = accounts
-      .filter(a => LIABILITY_TYPES.has(a.type))
-      .reduce((s, a) => s + a.balance, 0);
-
-    const totalDebt        = debts.reduce((s, d) => s + d.currentBalance, 0) + accountLiabilities;
-    const totalLiabilities = totalDebt;
-    const netWorth         = assets - totalLiabilities;
-
-    // Cash for emergency fund (chequing + savings)
-    const cash = accounts
-      .filter(a => ["chequing","checking","savings"].includes(a.type))
-      .reduce((s, a) => s + a.balance, 0);
-
-    // Monthly figures
-    const monthlyIncome   = incTxns.reduce((s, t) => s + t.amount, 0);
-    const monthlyExpenses = expTxns.reduce((s, t) => s + t.amount, 0);
-    const monthlyCashFlow = monthlyIncome - monthlyExpenses;
-    const savingsRate     = monthlyIncome > 0 ? (monthlyCashFlow / monthlyIncome) * 100 : 0;
-    const debtRatio       = assets > 0 ? (totalDebt / assets) * 100 : 0;
-
-    // Avg monthly expenses over last 3 months for emergency fund calc
-    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-    const pastExp = await Transaction.find({
-      userId, type: "expense", date: { $gte: threeMonthsAgo, $lte: eom },
-    });
-    const avgMonthlyExp       = pastExp.reduce((s, t) => s + t.amount, 0) / 3;
-    const emergencyFundMonths = avgMonthlyExp > 0 ? cash / avgMonthlyExp : 0;
 
     // Net worth trend: delta vs previous month (snapshots arrive newest-first)
     const netWorthTrend = snapshots.length >= 2
@@ -546,16 +501,16 @@ router.get("/financial-snapshot", async (req: Request, res: Response) => {
       : 0;
 
     return res.json({
-      netWorth:            Math.round(netWorth         * 100) / 100,
-      totalAssets:         Math.round(assets           * 100) / 100,
-      totalLiabilities:    Math.round(totalLiabilities * 100) / 100,
-      totalDebt:           Math.round(totalDebt        * 100) / 100,
-      monthlyIncome:       Math.round(monthlyIncome    * 100) / 100,
-      monthlyExpenses:     Math.round(monthlyExpenses  * 100) / 100,
-      monthlyCashFlow:     Math.round(monthlyCashFlow  * 100) / 100,
-      savingsRate:         Math.round(savingsRate       * 10) / 10,
-      debtRatio:           Math.round(debtRatio         * 10) / 10,
-      emergencyFundMonths: Math.round(emergencyFundMonths * 10) / 10,
+      netWorth:            Math.round(live.netWorth         * 100) / 100,
+      totalAssets:         Math.round(live.totalAssets      * 100) / 100,
+      totalLiabilities:    Math.round(live.totalLiabilities * 100) / 100,
+      totalDebt:           Math.round(live.totalDebt        * 100) / 100,
+      monthlyIncome:       Math.round(live.monthlyIncome    * 100) / 100,
+      monthlyExpenses:     Math.round(live.monthlyExpenses  * 100) / 100,
+      monthlyCashFlow:     Math.round(live.monthlyCashFlow  * 100) / 100,
+      savingsRate:         Math.round(live.savingsRate       * 10) / 10,
+      debtRatio:           Math.round(live.debtRatio         * 10) / 10,
+      emergencyFundMonths: Math.round(live.emergencyFundMonths * 10) / 10,
       netWorthTrend,
       activeGoals:    goals.length,
       goalsProgress:  Math.round(goalsProgress * 10) / 10,

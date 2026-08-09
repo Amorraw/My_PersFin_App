@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
+import { useFinancialData } from "../contexts/FinancialDataContext";
 import "./Properties.css";
 
 interface Property {
@@ -58,6 +59,7 @@ const emptyForm = {
 };
 
 export default function Properties() {
+  const { refresh: refreshFinancials } = useFinancialData();
   const [properties, setProperties]     = useState<Property[]>([]);
   const [mortgageDebts, setMortgageDebts] = useState<Debt[]>([]);
   const [summary, setSummary]           = useState({ totalValue: 0, totalEquity: 0, totalMortgage: 0, totalGain: 0 });
@@ -83,7 +85,9 @@ export default function Properties() {
         totalMortgage: propData.totalMortgage ?? 0,
         totalGain:     propData.totalGain     ?? 0,
       });
-      setMortgageDebts((debtData.debts ?? []).filter((d: Debt) => d.type === "mortgage"));
+      const debtList: Debt[] = Array.isArray(debtData) ? debtData : (debtData?.debts ?? []);
+      setMortgageDebts(debtList.filter((d) => d.type === "mortgage"));
+      refreshFinancials(); // property value/equity feeds live net worth
     } catch (err) {
       console.error("Failed to load properties:", err);
     } finally {

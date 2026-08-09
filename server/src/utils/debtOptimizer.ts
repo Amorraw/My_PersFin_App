@@ -14,6 +14,17 @@ export interface DebtForCalculation {
   [key: string]: any;
 }
 
+/**
+ * Spreading a live Mongoose document with `{...doc}` does NOT copy its schema
+ * fields — it copies Mongoose's internal `$__`/`_doc` structure instead, so
+ * every field silently becomes `undefined` and downstream math turns to NaN.
+ * Callers that build a new object from a debt (rather than reading its fields
+ * directly) must normalize through this first.
+ */
+function toPlainDebt<T extends Record<string, any>>(d: T): T {
+  return typeof (d as any)?.toObject === "function" ? (d as any).toObject() : d;
+}
+
 export interface PayoffPlan {
   strategy: string;
   totalDebt: number;
@@ -105,20 +116,22 @@ export function calculateHybridStrategy(
   months: number = 360
 ): PayoffPlan {
   // Calculate weighted score for each debt
+  const maxBalance = Math.max(...debts.map((d) => d.currentBalance));
   const withScores = debts.map((debt) => {
+    const plain = toPlainDebt(debt);
+
     // Normalize interest rate (0-5% → 0-1)
-    const normalizedRate = Math.min(debt.interestRate / 5, 1);
+    const normalizedRate = Math.min(plain.interestRate / 5, 1);
 
     // Normalize balance (relative to max)
-    const maxBalance = Math.max(...debts.map((d) => d.currentBalance));
-    const normalizedBalance = debt.currentBalance / maxBalance;
+    const normalizedBalance = plain.currentBalance / maxBalance;
 
     // Weight: avalanche weight (interest) + snowball weight (balance)
     const avalancheWeight = (weighting / 100) * normalizedRate;
     const snowballWeight = ((100 - weighting) / 100) * normalizedBalance;
 
     return {
-      ...debt,
+      ...plain,
       hybridScore: avalancheWeight + snowballWeight,
     };
   });
@@ -359,10 +372,7 @@ function calculatePayoffPlan(
   strategyName: string,
   maxMonths: number
 ): PayoffPlan {
-  const debtsState = debts.map((d) => ({
-    ...d,
-    currentBalance: d.currentBalance,
-  }));
+  const debtsState = debts.map((d) => ({ ...toPlainDebt(d) }));
 
   const priorityOrder: PriorityDebt[] = debts.map((d, idx) => ({
     debtId: d._id?.toString() || `debt-${idx}`,

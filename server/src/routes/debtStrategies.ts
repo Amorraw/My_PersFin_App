@@ -3,6 +3,8 @@ import { Debt } from "../models/Debt";
 import { DebtStrategy } from "../models/DebtStrategy";
 import { requireLogin } from "../middleware/requireLogin";
 import * as debtOptimizer from "../utils/debtOptimizer";
+import { getLiveFinancials } from "../utils/liveFinancials";
+import { EMERGENCY_FUND_MIN_TO_INVEST_MONTHS } from "../utils/financeConstants";
 import mongoose from "mongoose";
 
 const router = Router();
@@ -11,13 +13,51 @@ const router = Router();
 router.use(requireLogin);
 
 /**
+ * Resolves the monthly budget to actually use for a payoff calculation.
+ * When the caller omits monthlyBudget, defaults to the user's real minimum
+ * payments plus their real cash-flow surplus. When the caller supplies an
+ * explicit value that clearly exceeds that surplus, keeps it but attaches a
+ * warning instead of silently rejecting it — the user may have a specific
+ * reason to plan around a different number.
+ */
+async function resolveMonthlyBudget(userId: any, totalMinimumPayment: number, requestedBudget: number | undefined | null) {
+  const live = await getLiveFinancials(userId);
+  const impliedMonthlyBudget = totalMinimumPayment + Math.max(0, live.monthlyCashFlow);
+
+  const usedBudget = requestedBudget == null ? impliedMonthlyBudget : requestedBudget;
+
+  let warning: string | undefined;
+  if (requestedBudget != null && requestedBudget - impliedMonthlyBudget > 1) {
+    warning = `This budget ($${requestedBudget.toFixed(2)}/mo) exceeds your typical $${impliedMonthlyBudget.toFixed(2)}/mo surplus (minimum payments + cash flow) — you'd need to draw from savings to sustain it.`;
+  }
+
+  const frameworkNotes: string[] = [];
+  if (live.emergencyFundMonths < EMERGENCY_FUND_MIN_TO_INVEST_MONTHS) {
+    frameworkNotes.push(
+      `Your emergency fund is ${live.emergencyFundMonths.toFixed(1)} months of expenses — below the recommended ${EMERGENCY_FUND_MIN_TO_INVEST_MONTHS} before committing your full surplus to extra debt payments.`
+    );
+  }
+
+  return {
+    usedBudget,
+    liveSurplus: {
+      monthlyCashFlow: live.monthlyCashFlow,
+      totalMinimumPayment,
+      impliedMonthlyBudget,
+    },
+    warning,
+    frameworkNotes,
+  };
+}
+
+/**
  * POST /debt-strategies/analyze
  * Analyze debts and create an optimization strategy
  */
 router.post("/analyze", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
-    const { debtIds, strategyType = "hybrid", monthlyBudget = 0, weighting = 50 } = req.body;
+    const { debtIds, strategyType = "hybrid", monthlyBudget, weighting = 50 } = req.body;
 
     if (!debtIds || debtIds.length === 0) {
       return res.status(400).json({ message: "At least one debt required" });
@@ -32,7 +72,9 @@ router.post("/analyze", async (req, res, next) => {
 
     let plan;
     const totalMinimumPayment = debts.reduce((sum, d) => sum + d.minimumPayment, 0);
-    const extraPayment = Math.max(0, monthlyBudget - totalMinimumPayment);
+    const { usedBudget, liveSurplus, warning, frameworkNotes } =
+      await resolveMonthlyBudget(userId, totalMinimumPayment, monthlyBudget);
+    const extraPayment = Math.max(0, usedBudget - totalMinimumPayment);
 
     switch (strategyType) {
       case "avalanche":
@@ -69,7 +111,7 @@ router.post("/analyze", async (req, res, next) => {
       name: `${strategyType.toUpperCase()} Strategy`,
       strategyType,
       debtIds,
-      monthlyBudget,
+      monthlyBudget: usedBudget,
       priorityWeighting: weighting,
       totalDebt: plan.totalDebt,
       totalInterest: plan.totalInterest,
@@ -105,6 +147,9 @@ router.post("/analyze", async (req, res, next) => {
           monthlyPayment: snowball.monthlyPayment,
         },
       },
+      liveSurplus,
+      warning,
+      frameworkNotes,
     });
   } catch (err) {
     next(err);
@@ -156,7 +201,7 @@ router.get("/:id", async (req, res, next) => {
 router.post("/consolidation-analysis", async (req, res, next) => {
   try {
     const userId = (req.user as any)._id;
-    const { debtIds, consolidationRate = 8, consolidationFee = 0, monthlyBudget = 0 } = req.body;
+    const { debtIds, consolidationRate = 8, consolidationFee = 0, monthlyBudget } = req.body;
 
     if (!debtIds || debtIds.length === 0) {
       return res.status(400).json({ message: "At least one debt required" });
@@ -169,7 +214,9 @@ router.post("/consolidation-analysis", async (req, res, next) => {
     }
 
     const totalMinimumPayment = debts.reduce((sum, d) => sum + d.minimumPayment, 0);
-    const extraPayment = Math.max(0, monthlyBudget - totalMinimumPayment);
+    const { usedBudget, liveSurplus, warning, frameworkNotes } =
+      await resolveMonthlyBudget(userId, totalMinimumPayment, monthlyBudget);
+    const extraPayment = Math.max(0, usedBudget - totalMinimumPayment);
 
     const analysis = debtOptimizer.analyzeConsolidation(
       debts,
@@ -199,6 +246,9 @@ router.post("/consolidation-analysis", async (req, res, next) => {
         timeSavings: analysis.timeSavings,
         recommendation: analysis.recommendation,
       },
+      liveSurplus,
+      warning,
+      frameworkNotes,
     });
   } catch (err) {
     next(err);

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { FinancialDataProvider } from "./contexts/FinancialDataContext";
 import GlobalSearch from "./components/GlobalSearch";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
@@ -316,7 +317,9 @@ function App() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <Layout />
+            <FinancialDataProvider>
+              <Layout />
+            </FinancialDataProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>

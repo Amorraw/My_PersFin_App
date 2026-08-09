@@ -1,17 +1,10 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { api } from "../api";
+import { useFinancialData } from "../contexts/FinancialDataContext";
+import { EmergencyFundBanner } from "../components/EmergencyFundBanner";
 import "./DebtOptimization.css";
 import { DonutChart, fmtMoney } from "../components/charts";
-
-interface Debt {
-  _id: string;
-  name: string;
-  type: string;
-  currentBalance: number;
-  interestRate: number;
-  minimumPayment: number;
-}
 
 interface DetectedDebt {
   accountId: string;
@@ -74,14 +67,19 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function DebtOptimization(): ReactElement {
-  const [debts, setDebts] = useState<Debt[]>([]);
+  const { debts, monthlySurplus, refresh: refreshFinancials } = useFinancialData();
   const [selectedDebts, setSelectedDebts] = useState<string[]>([]);
   const [strategyType, setStrategyType] = useState<"avalanche" | "snowball" | "hybrid">("hybrid");
   const [monthlyBudget, setMonthlyBudget] = useState(0);
+  const [budgetTouched, setBudgetTouched] = useState(false);
   const [weighting, setWeighting] = useState(50);
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<PayoffPlanData | null>(null);
   const [comparisons, setComparisons] = useState<ComparisonData | null>(null);
+  const [analysisWarning, setAnalysisWarning] = useState<string | undefined>();
+  const [analysisNotes, setAnalysisNotes] = useState<string[]>([]);
+  const [consolidationWarning, setConsolidationWarning] = useState<string | undefined>();
+  const [consolidationNotes, setConsolidationNotes] = useState<string[]>([]);
   const [lumpSumAmount, setLumpSumAmount] = useState(0);
   const [lumpSumResult, setLumpSumResult] = useState<LumpSumResultData | null>(null);
   const [accelerationMethod, setAccelerationMethod] = useState<"biweekly" | "lump-sum" | "increased-payment">("increased-payment");
@@ -98,19 +96,6 @@ export default function DebtOptimization(): ReactElement {
   const [editRates, setEditRates] = useState<Record<string, number>>({});
   const [editMins, setEditMins] = useState<Record<string, number>>({});
   const [importingAll, setImportingAll] = useState(false);
-
-  useEffect(() => {
-    loadDebts();
-  }, []);
-
-  const loadDebts = async () => {
-    try {
-      const debtRes = await api("/debts");
-      if (Array.isArray(debtRes)) setDebts(debtRes);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // ── Detection handlers ──────────────────────────────────────────────────────
 
@@ -158,7 +143,7 @@ export default function DebtOptimization(): ReactElement {
       setDetected((prev) =>
         prev ? prev.map((x) => x.accountId === d.accountId ? { ...x, alreadyImported: true } : x) : prev
       );
-      loadDebts();
+      refreshFinancials();
     } catch (err: any) {
       alert(err.message || "Failed to import debt");
     }
@@ -189,6 +174,8 @@ export default function DebtOptimization(): ReactElement {
       });
       setPlan(response.plan);
       setComparisons(response.comparisons);
+      setAnalysisWarning(response.warning);
+      setAnalysisNotes(response.frameworkNotes ?? []);
     } catch (err) {
       console.error(err);
       alert("Error analyzing strategy");
@@ -242,6 +229,8 @@ export default function DebtOptimization(): ReactElement {
         body: JSON.stringify({ debtIds: selectedDebts, consolidationRate, monthlyBudget }),
       });
       setConsolidationResults(response);
+      setConsolidationWarning(response.warning);
+      setConsolidationNotes(response.frameworkNotes ?? []);
     } catch (err) {
       console.error(err);
       alert("Error analyzing consolidation");
@@ -253,6 +242,13 @@ export default function DebtOptimization(): ReactElement {
   const totalMinimumPayment = debts
     .filter((d) => selectedDebts.includes(d._id))
     .reduce((sum, d) => sum + d.minimumPayment, 0);
+
+  // Suggest a budget from real cash-flow surplus, but never overwrite a value the user typed.
+  useEffect(() => {
+    if (!budgetTouched) {
+      setMonthlyBudget(Math.round((totalMinimumPayment + monthlySurplus) * 100) / 100);
+    }
+  }, [totalMinimumPayment, monthlySurplus, budgetTouched]);
 
   const visibleDetected = detected ? detected.filter((d) => !dismissed.has(d.accountId)) : [];
   const newCount = visibleDetected.filter((d) => !d.alreadyImported).length;
@@ -278,6 +274,8 @@ export default function DebtOptimization(): ReactElement {
           </button>
         </div>
       </div>
+
+      <EmergencyFundBanner />
 
       {/* ── Import from accounts panel ── */}
       {(detected !== null || detecting || detectError) && (
@@ -532,11 +530,26 @@ export default function DebtOptimization(): ReactElement {
                 <input
                   type="number"
                   value={monthlyBudget}
-                  onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                  onChange={(e) => { setBudgetTouched(true); setMonthlyBudget(Number(e.target.value)); }}
                   min={totalMinimumPayment}
                 />
               </div>
               <small>Minimum required: {fmtMoney(totalMinimumPayment)}/month (total of all minimum payments)</small>
+              <br />
+              <small style={{ color: "var(--text-light)" }}>
+                {budgetTouched
+                  ? `Your live surplus is ${fmtMoney(monthlySurplus)}/month — click to reset to that suggestion.`
+                  : `Using your live cash-flow surplus of ${fmtMoney(monthlySurplus)}/month — edit above if this month is different.`}
+                {budgetTouched && (
+                  <button
+                    type="button"
+                    onClick={() => setBudgetTouched(false)}
+                    style={{ marginLeft: 6, background: "none", border: "none", color: "#4f46e5", cursor: "pointer", fontSize: "inherit", textDecoration: "underline", padding: 0 }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </small>
               {monthlyBudget > 0 && monthlyBudget >= totalMinimumPayment && (
                 <small className="extra-payment">
                   💪 Extra payment per month: {fmtMoney(monthlyBudget - totalMinimumPayment)}
@@ -555,6 +568,14 @@ export default function DebtOptimization(): ReactElement {
 
           {plan && (
             <div className="debt-section results">
+              {(analysisWarning || analysisNotes.length > 0) && (
+                <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+                  {analysisWarning && <p style={{ margin: 0, color: "#b45309", fontWeight: 600 }}>⚠️ {analysisWarning}</p>}
+                  {analysisNotes.map((note, i) => (
+                    <p key={i} style={{ margin: analysisWarning || i > 0 ? "6px 0 0" : 0, color: "#92400e" }}>💡 {note}</p>
+                  ))}
+                </div>
+              )}
               <h2>Your Payoff Plan</h2>
               <div className="plan-summary">
                 <div className="plan-stat">
@@ -694,6 +715,14 @@ export default function DebtOptimization(): ReactElement {
               </div>
               {consolidationResults && (
                 <div className="tool-result">
+                  {(consolidationWarning || consolidationNotes.length > 0) && (
+                    <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
+                      {consolidationWarning && <p style={{ margin: 0, color: "#b45309", fontWeight: 600 }}>⚠️ {consolidationWarning}</p>}
+                      {consolidationNotes.map((note, i) => (
+                        <p key={i} style={{ margin: consolidationWarning || i > 0 ? "6px 0 0" : 0, color: "#92400e" }}>💡 {note}</p>
+                      ))}
+                    </div>
+                  )}
                   <div className="comparison-grid">
                     <div className="comparison-card">
                       <h4>Keep Individual Debts</h4>

@@ -7,7 +7,16 @@
       "PowerShell(Start-Service -Name \"MongoDB\")",
       "PowerShell(Get-Service -Name \"MongoDB\")",
       "Read(//c/Program Files/MongoDB/Server/8.0/data/**)",
-      "Read(//c/Program Files/MongoDB/Server/8.0/bin/**)"
+      "Read(//c/Program Files/MongoDB/Server/8.0/bin/**)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000,5173,8000 -State Listen -ErrorAction SilentlyContinue)",
+      "Bash(echo \"backend pid: $!\")",
+      "Bash(echo \"web pid: $!\")",
+      "Bash(py -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(echo \"ml pid: $!\")",
+      "Bash(curl -s -m 5 -o /dev/null -w \"Backend  \\(3000\\): HTTP %{http_code}\\\\n\" http://localhost:3000/api/auth/me)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"Web      \\(5173\\): HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"ML       \\(8000\\): HTTP %{http_code}\\\\n\" http://localhost:8000/docs)",
+      "Bash(npx tsc *)"
     ]
   }
 }
