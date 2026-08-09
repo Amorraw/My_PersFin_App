@@ -3,10 +3,7 @@ import { useAuth } from "../AuthContext";
 import { useFinancialData } from "../contexts/FinancialDataContext";
 import { api } from "../api";
 import "./InsurancePlanning.css";
-
-// ── shared helpers ──────────────────────────────────────────────────────────
-const fmt = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+import { fmtCAD as fmt } from "../utils/formatters";
 
 const PROVINCES = [
   ["AB","Alberta"],["BC","British Columbia"],["MB","Manitoba"],["NB","New Brunswick"],

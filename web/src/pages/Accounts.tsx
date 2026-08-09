@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinancialData } from '../contexts/FinancialDataContext';
+import { fmtMoney } from '../utils/formatters';
+import { LIABILITY_TYPES } from '../utils/constants';
 import './Accounts.css';
 
 // ── Canadian institutions ────────────────────────────────────────────────────
@@ -62,10 +64,7 @@ interface AccountTypeInfo {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const CAD = (n: number) =>
-  Math.abs(n).toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
-
-const LIABILITY_TYPES = new Set(['credit-card', 'line-of-credit', 'mortgage', 'auto-loan', 'personal-loan', 'student-loan']);
+const CAD = (n: number) => fmtMoney(Math.abs(n));
 
 // ── Component ────────────────────────────────────────────────────────────────
 

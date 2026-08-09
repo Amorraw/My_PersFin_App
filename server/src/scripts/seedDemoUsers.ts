@@ -722,6 +722,43 @@ const CREDIT_LIMIT: Partial<Record<string, number>> = {
   "line-of-credit": 20000,
 };
 
+// ── Seasonal spending multipliers (per calendar month, 0=Jan … 11=Dec) ────────
+// Reflects real Canadian seasonal patterns: heating in winter, travel & gas in
+// summer, holiday shopping Nov-Dec. Applied to amounts so monthly totals vary
+// realistically instead of hugging a flat average — this is also what lets the
+// ML Insights forecast's seasonal-detection actually find something to detect.
+
+const SEASONAL_FACTORS: Record<string, number[]> = {
+  //                          Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec
+  Groceries:           [1.05, 1.00, 0.98, 0.95, 0.95, 0.92, 0.90, 0.90, 0.95, 1.00, 1.05, 1.22],
+  Gas:                 [0.82, 0.83, 0.93, 1.03, 1.12, 1.22, 1.28, 1.24, 1.10, 0.98, 0.88, 0.82],
+  Restaurants:         [0.75, 0.78, 0.87, 0.93, 1.00, 1.12, 1.20, 1.20, 1.05, 0.98, 0.92, 1.22],
+  Coffee:              [1.15, 1.12, 1.05, 1.00, 0.95, 0.87, 0.83, 0.83, 0.97, 1.05, 1.10, 1.15],
+  Utilities:           [1.55, 1.48, 1.25, 0.90, 0.68, 0.58, 0.65, 0.72, 0.80, 1.00, 1.22, 1.45],
+  Shopping:            [0.72, 0.72, 0.83, 0.90, 1.00, 0.93, 0.97, 1.05, 1.15, 1.12, 1.32, 1.65],
+  Entertainment:       [0.78, 0.78, 0.87, 0.92, 1.00, 1.15, 1.28, 1.28, 1.05, 0.97, 0.90, 1.12],
+  Travel:              [0.60, 0.60, 0.75, 0.88, 1.08, 1.38, 1.65, 1.70, 1.12, 0.82, 0.72, 1.32],
+  Healthcare:          [1.28, 1.20, 1.08, 1.00, 0.90, 0.80, 0.78, 0.80, 0.97, 1.05, 1.18, 1.08],
+  "Kids Activities":   [0.60, 0.72, 0.90, 1.05, 1.08, 0.22, 0.18, 0.22, 1.20, 1.28, 1.18, 0.75],
+  "Business Expenses": [0.90, 0.95, 1.00, 1.05, 1.07, 0.88, 0.72, 0.78, 1.07, 1.12, 1.07, 0.93],
+  Household:           [0.72, 0.78, 1.12, 1.28, 1.32, 1.05, 0.93, 0.88, 0.88, 0.93, 0.87, 0.82],
+  Auto:                [0.93, 0.93, 1.12, 1.18, 1.12, 0.95, 0.88, 0.87, 1.00, 1.07, 1.02, 0.93],
+  Gifts:               [0.88, 1.10, 0.90, 0.92, 1.08, 0.92, 0.90, 0.90, 0.90, 0.95, 1.10, 1.65],
+};
+const DEFAULT_SEASONAL = [0.90, 0.92, 0.96, 0.98, 1.01, 1.04, 1.06, 1.06, 1.02, 1.00, 0.98, 1.06];
+
+function seasonalFactor(category: string, month: number): number {
+  return (SEASONAL_FACTORS[category] ?? DEFAULT_SEASONAL)[month];
+}
+
+/** Calendar month (0-11) for a date `monthsAgo` months before _now. */
+function calendarMonthOf(monthsAgo: number): number {
+  const d = new Date(_now);
+  d.setDate(1);
+  d.setMonth(d.getMonth() - monthsAgo);
+  return d.getMonth();
+}
+
 function buildTransactions(
   userId: any,
   acctMap: Map<string, any>,
@@ -810,14 +847,34 @@ function buildTransactions(
     }
   }
 
-  // ── Monthly spending rules — compounding inflation discount further back ─────
+  // Each (yearIndex, category) pair gets a stable random multiplier in [0.88, 1.12]
+  // so every year is slightly different from the next while staying recognisably
+  // similar — layered with the seasonal factor and inflation discount below.
+  const numYears = Math.ceil(months / 12) + 1;
+  const oneOffCategories = ["Healthcare", "Auto", "Gifts", "Household", "Education"];
+  const allSpendCats = [...new Set([...profile.spending.map((r) => r.category), ...oneOffCategories])];
+  const yearChars = new Map<string, number[]>();
+  for (const cat of allSpendCats) {
+    yearChars.set(cat, Array.from({ length: numYears }, () => rnd(0.88, 1.12)));
+  }
+
+  // ── Monthly spending rules — seasonal pattern + year character + inflation ───
   for (let m = months - 1; m >= 0; m--) {
+    const month = calendarMonthOf(m);
+    const yearIndex = Math.floor(m / 12);
     const inflationDiscount = Math.pow(1 + ANNUAL_INFLATION, -(m / 12));
+
     for (const rule of profile.spending) {
-      const count = Math.round(rule.perMonth + rnd(-0.5, 0.5));
+      const seasonal = seasonalFactor(rule.category, month);
+      const yearChar = yearChars.get(rule.category)?.[yearIndex] ?? 1.0;
+      const scale = seasonal * yearChar * inflationDiscount;
+
+      // Vary count slightly with season for high-frequency categories (e.g. more gas fill-ups in summer)
+      const countScale = seasonal > 1.15 ? 1.2 : seasonal < 0.85 ? 0.8 : 1.0;
+      const count = Math.max(0, Math.round(rule.perMonth * countScale + rnd(-0.5, 0.5)));
       for (let i = 0; i < count; i++) {
         const day = rndInt(1, 28);
-        const amount = rnd(rule.min, rule.max) * inflationDiscount;
+        const amount = Math.max(1, rnd(rule.min, rule.max) * scale);
         const desc = pick(rule.descriptions);
         addCardExpense(amount, rule.category, desc, txnDate(m, day), rule.accountKey);
       }
@@ -869,7 +926,10 @@ function buildTransactions(
         { cat: "Education", descs: ["Udemy Course", "LinkedIn Learning", "Book Purchase"], min: 15, max: 150 },
       ];
       const ev = pick(oneOffs);
-      add("expense", rnd(ev.min, ev.max) * inflationDiscount, ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
+      const evSeasonal = seasonalFactor(ev.cat, month);
+      const evYearChar = yearChars.get(ev.cat)?.[yearIndex] ?? 1.0;
+      const evScale = evSeasonal * evYearChar * inflationDiscount;
+      add("expense", Math.max(1, rnd(ev.min, ev.max) * evScale), ev.cat, pick(ev.descs), txnDate(m, rndInt(1, 28)), profile.payAccountKey);
     }
   }
 

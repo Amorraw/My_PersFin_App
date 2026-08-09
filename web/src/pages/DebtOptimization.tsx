@@ -54,9 +54,6 @@ interface ConsolidationResultData {
   analysis:         { interestSavings: number; timeSavings: number; recommendation: string };
 }
 
-const CAD = (n: number) =>
-  n.toLocaleString("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
-
 const TYPE_COLORS: Record<string, string> = {
   "credit-card":  "#fee2e2",
   "mortgage":     "#eff6ff",
@@ -348,7 +345,7 @@ export default function DebtOptimization(): ReactElement {
 
                       {/* Balance */}
                       <td style={{ padding: "8px 10px", fontWeight: 700, color: "#dc2626", whiteSpace: "nowrap" }}>
-                        {CAD(d.balance)}
+                        {fmtMoney(d.balance)}
                       </td>
 
                       {/* Editable interest rate */}
@@ -371,7 +368,7 @@ export default function DebtOptimization(): ReactElement {
                       {/* Editable minimum payment */}
                       <td style={{ padding: "8px 10px" }}>
                         {d.alreadyImported ? (
-                          <span style={{ color: "var(--text-light)" }}>{CAD(d.defaultMinPayment)}</span>
+                          <span style={{ color: "var(--text-light)" }}>{fmtMoney(d.defaultMinPayment)}</span>
                         ) : (
                           <input
                             type="number"

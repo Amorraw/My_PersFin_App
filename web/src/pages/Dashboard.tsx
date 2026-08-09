@@ -13,26 +13,13 @@ import {
   fmtCAD,
   COLORS as C,
 } from "../components/charts";
+import { LIABILITY_TYPES, ACCOUNT_TYPE_LABELS } from "../utils/constants";
 import './Dashboard.css';
 
 interface CashFlowMonth { month: string; income: number; expenses: number; net: number; }
 interface AllocSlice    { name: string; value: number; color: string; }
 interface SpendItem     { category: string; amount: number; }
 interface BudgetRow     { category: string; budgeted: number; spent: number; isOverBudget: boolean; percentUsed: number; }
-
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  chequing: "Chequing", checking: "Checking", savings: "Savings",
-  "credit-card": "Credit Card", "line-of-credit": "LOC",
-  tfsa: "TFSA", rrsp: "RRSP", gic: "GIC",
-  "student-loan": "Student Loan", mortgage: "Mortgage",
-  "auto-loan": "Auto Loan", "personal-loan": "Personal Loan",
-  investment: "Investment", other: "Other",
-};
-
-const LIABILITY_TYPES = new Set([
-  "credit-card", "line-of-credit", "student-loan",
-  "mortgage", "auto-loan", "personal-loan",
-]);
 
 type StepKey = "netWorth" | "debts" | "recurring" | "forecast" | "anomalies" | "budgets";
 type StepStatus = "idle" | "running" | "done" | "error";

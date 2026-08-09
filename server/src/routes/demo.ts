@@ -33,9 +33,9 @@ router.use(requireAuth);
 
 export const ALLOWED_DEMO_YEARS = [1, 3, 5, 7];
 
-function parseYears(body: any): number {
+function parseYears(body: any, fallback = 3): number {
   const years = parseInt(body?.years, 10);
-  return ALLOWED_DEMO_YEARS.includes(years) ? years : 3;
+  return ALLOWED_DEMO_YEARS.includes(years) ? years : fallback;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ router.post("/activate", async (req: Request, res: Response) => {
     await seedDataForUser(userId, profile, { years: years as 1 | 3 | 5 | 7 });
     await takeSnapshot(userId, profileIndex);
 
-    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex });
+    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex, demoHistoryYears: years });
     return res.json({ ok: true, message: `Profile "${profile.firstName}'s" data loaded (${years} year${years === 1 ? "" : "s"} of history). Reload to see it.`, profileIndex, years });
   } catch (err: any) {
     console.error("Demo activate error:", err);
@@ -163,7 +163,8 @@ router.post("/regenerate", async (req: Request, res: Response) => {
   if (!user?.demoProfileIndex) {
     return res.status(400).json({ message: "No demo profile loaded. Go to Demo Profiles and load one first." });
   }
-  const years = parseYears(req.body);
+  // Omit years to keep whatever duration was last activated/regenerated for this user.
+  const years = parseYears(req.body, user.demoHistoryYears ?? 3);
 
   try {
     const { seedDataForUser, PROFILES } = await import("../scripts/seedDemoUsers");
@@ -172,6 +173,7 @@ router.post("/regenerate", async (req: Request, res: Response) => {
     await clearUserData(userId);
     await seedDataForUser(userId, profile, { years: years as 1 | 3 | 5 | 7 }); // Math.random + current date (defaults)
     await takeSnapshot(userId, user.demoProfileIndex);
+    await User.findByIdAndUpdate(userId, { demoHistoryYears: years });
 
     return res.json({ ok: true, message: `New random dataset generated (${years} year${years === 1 ? "" : "s"} of history). Reload to see your fresh data.`, years });
   } catch (err: any) {

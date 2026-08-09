@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { api } from "../api";
 import { useFinancialData } from "../contexts/FinancialDataContext";
 import "./Properties.css";
+import { fmtCAD as fmt } from "../utils/formatters";
 
 interface Property {
   _id: string;
@@ -153,9 +154,6 @@ export default function Properties() {
       setSaving(false);
     }
   };
-
-  const fmt = (n: number) =>
-    n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
   const typeLabel = (t: string) =>
     PROPERTY_TYPES.find((p) => p.value === t)?.label ?? t;

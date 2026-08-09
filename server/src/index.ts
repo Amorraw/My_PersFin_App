@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import session from "express-session";
 import path from "path";
 import MongoStore from "connect-mongo";
@@ -49,6 +50,11 @@ const isProd = process.env.NODE_ENV === "production";
 // Render terminates TLS at the load balancer — trust proxy so cookies are secure
 if (isProd) app.set("trust proxy", 1);
 
+// ── 0. Security headers ───────────────────────────────────────────────────────
+// CSP disabled for now: a default-src 'self' policy would block the Plaid Link
+// iframe/script (cdn.plaid.com) and Vite's injected styles without further tuning.
+app.use(helmet({ contentSecurityPolicy: false }));
+
 // ── 1. Static files served FIRST — no session/auth needed for assets ──────────
 // __dirname at runtime = server/dist, so ../../web/dist = repo-root/web/dist
 const frontendDist = path.join(__dirname, "../../web/dist");
@@ -83,7 +89,9 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "50mb" }));
+// PDF/CSV uploads go through multer (multipart), so JSON bodies are small;
+// 50mb let unauthenticated requests force large allocations before parsing.
+app.use(express.json({ limit: "5mb" }));
 
 async function main() {
   // Resolve the Mongo connection first — the session store below must be built

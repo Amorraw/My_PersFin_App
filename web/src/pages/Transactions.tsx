@@ -6,15 +6,13 @@ import { useFinancialData } from "../contexts/FinancialDataContext";
 import type { Transaction, Account, CategoryMajor } from "../types";
 import { CATEGORY_CATALOG } from "../data/categoryCatalog";
 import { TrendAreaChart, fmtMoney } from "../components/charts";
+import { DEBT_ACCOUNT_TYPES, INVESTMENT_TYPES } from "../utils/constants";
 import './Transactions.css';
 
 const ITEMS_PER_PAGE = 100;
 const ALL_ACCOUNTS = "__all_accounts__";
 type FilterKey = "date" | "description" | "category" | "account" | "type";
 type AccountTab = "all" | "chequing" | "savings" | "credit-cards" | "debts" | "investments" | "other";
-
-const DEBT_TYPES = new Set(["line-of-credit", "student-loan", "mortgage", "auto-loan", "personal-loan"]);
-const INVESTMENT_TYPES = new Set(["tfsa", "rrsp", "gic", "investment"]);
 
 const tabLabel: Record<AccountTab, string> = {
   all: "All",
@@ -32,7 +30,7 @@ function tabForAccountType(accountType: string): AccountTab {
   if (accountType === "chequing" || accountType === "checking") return "chequing";
   if (accountType === "savings") return "savings";
   if (accountType === "credit-card") return "credit-cards";
-  if (DEBT_TYPES.has(accountType)) return "debts";
+  if (DEBT_ACCOUNT_TYPES.has(accountType)) return "debts";
   if (INVESTMENT_TYPES.has(accountType)) return "investments";
   return "other";
 }

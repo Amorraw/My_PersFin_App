@@ -42,6 +42,13 @@ async function getHistoryMonths(userId: string): Promise<number> {
 const MIN_FORECAST_HISTORY_MONTHS = 12;
 const FULL_FEATURE_HISTORY_MONTHS = 24;
 
+// Maps the frontend's "Analysis Period" selector to a lookback window in months.
+const RANGE_LOOKBACK_MONTHS: Record<string, number> = { "1y": 12, "2y": 24, "3y": 36, all: 1200 };
+function rangeLookbackMonths(body: any): number {
+  const r = typeof body?.range === "string" ? body.range : "1y";
+  return RANGE_LOOKBACK_MONTHS[r] ?? 12;
+}
+
 async function buildMonthlySpending(userId: string, months: number) {
   const since = new Date();
   since.setMonth(since.getMonth() - months);
@@ -81,9 +88,11 @@ router.post("/forecast", async (req: Request, res: ExpressResponse) => {
       });
     }
 
-    // 24 months so the ML service has a real chance at fitting yearly
-    // seasonality (it needs >= 2 full cycles) for multi-year forecasts.
-    const monthly = await buildMonthlySpending(userId, 24);
+    // Lookback window is driven by the user's chosen Analysis Period — a
+    // shorter period (e.g. "1y") means the model never sees 2 full yearly
+    // cycles, so seasonality naturally won't apply until "2y"+ is selected.
+    const lookbackMonths = rangeLookbackMonths(req.body);
+    const monthly = await buildMonthlySpending(userId, lookbackMonths);
     if (monthly.length === 0) {
       return res.json({ forecasts: {}, months_forecast: 0, message: "Not enough transaction history for a forecast yet." });
     }
@@ -113,12 +122,13 @@ router.post("/forecast", async (req: Request, res: ExpressResponse) => {
 router.post("/anomalies", async (req: Request, res: ExpressResponse) => {
   try {
     const userId = (req.user as any).id;
+    const lookbackMonths = rangeLookbackMonths(req.body);
     const since = new Date();
-    since.setMonth(since.getMonth() - 3);
+    since.setMonth(since.getMonth() - lookbackMonths);
     const txns = await Transaction.find({ userId, date: { $gte: since } });
 
     if (txns.length === 0) {
-      return res.json({ anomalies: [], totalScanned: 0, anomalyCount: 0, message: "No transactions in the past 3 months to scan." });
+      return res.json({ anomalies: [], totalScanned: 0, anomalyCount: 0, message: `No transactions in the selected period to scan.` });
     }
 
     const transactions = txns.map(t => ({
@@ -140,7 +150,8 @@ router.post("/anomalies", async (req: Request, res: ExpressResponse) => {
 router.post("/suggest-budgets", async (req: Request, res: ExpressResponse) => {
   try {
     const userId = (req.user as any).id;
-    const monthly = await buildMonthlySpending(userId, 6);
+    const lookbackMonths = rangeLookbackMonths(req.body);
+    const monthly = await buildMonthlySpending(userId, lookbackMonths);
     if (monthly.length === 0) {
       return res.json({ suggestions: [], monthsAnalyzed: 0, message: "Not enough transaction history for budget suggestions yet." });
     }

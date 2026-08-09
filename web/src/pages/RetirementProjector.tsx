@@ -2,9 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ComposedChart, Area } from "recharts";
 import './RetirementProjector.css';
 import { fmtCADShort } from "../components/charts";
+import { fmtCAD as CAD } from "../utils/formatters";
 import { useFinancialData } from "../contexts/FinancialDataContext";
-
-const CAD = (n: number) => n.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
 function projectRetirement(
   currentAge: number,

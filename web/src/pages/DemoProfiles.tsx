@@ -157,20 +157,34 @@ export default function DemoProfiles() {
           (accounts, debts, properties, investments, TFSA/RRSP/FHSA/RESP). Log in to explore any profile.
         </p>
         {user && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginTop: 14, fontSize: "0.82rem" }}>
-            <label htmlFor="demo-years-select" style={{ color: "var(--text-light, #6b7280)" }}>
-              Years of history to load:
-            </label>
-            <select
-              id="demo-years-select"
-              value={years}
-              onChange={(e) => setYears(Number(e.target.value) as typeof YEAR_OPTIONS[number])}
-              style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid var(--border, #e5e7eb)", background: "var(--bg-card, #fff)", color: "var(--text)" }}
-            >
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 10, marginTop: 14,
+            background: "var(--bg-card, #fff)", border: "1px solid var(--border, #e5e7eb)",
+            borderRadius: 10, padding: "10px 20px", flexWrap: "wrap", justifyContent: "center",
+          }}>
+            <span style={{ fontSize: "0.8rem", color: "var(--text-light, #6b7280)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              History Length
+            </span>
+            <div style={{ display: "flex", gap: 6 }}>
               {YEAR_OPTIONS.map((y) => (
-                <option key={y} value={y}>{y} year{y === 1 ? "" : "s"}</option>
+                <button
+                  key={y}
+                  onClick={() => setYears(y)}
+                  style={{
+                    padding: "5px 14px", borderRadius: 6, fontSize: "0.8rem", fontWeight: 600,
+                    border: `1px solid ${years === y ? "#4f46e5" : "var(--border, #e5e7eb)"}`,
+                    background: years === y ? "#4f46e5" : "transparent",
+                    color: years === y ? "#fff" : "var(--text, #111)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {y} yr{y > 1 ? "s" : ""}
+                </button>
               ))}
-            </select>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-light, #6b7280)" }}>
+              → {years * 12} months of seasonal data for ML Insights
+            </span>
           </div>
         )}
         {/* Single credential box */}
