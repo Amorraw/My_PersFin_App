@@ -5,7 +5,10 @@ import { requireAuth } from "../middleware/requireLogin";
 const router = Router();
 router.use(requireAuth);
 
-const ML_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+// Strip a trailing slash — a pasted Render service URL commonly has one, and
+// combined with endpoint paths that start with "/" it produces a double
+// slash that some routers 404 or redirect on.
+const ML_URL = (process.env.ML_SERVICE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 async function proxyML(endpoint: string, body: object): Promise<any> {
   let raw: globalThis.Response;
