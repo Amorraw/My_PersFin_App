@@ -7,6 +7,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { FinancialDataProvider } from "./contexts/FinancialDataContext";
 import GlobalSearch from "./components/GlobalSearch";
 import Dashboard from "./pages/Dashboard";
+import PathForward from "./pages/PathForward";
 import Transactions from "./pages/Transactions";
 import TransactionDetail from "./pages/TransactionDetail";
 import Budgets from "./pages/Budgets";
@@ -58,8 +59,9 @@ const NAV_GROUPS = [
   {
     label: "Overview",
     items: [
-      { to: "/",           label: "Dashboard" },
-      { to: "/net-worth",  label: "Net Worth"  },
+      { to: "/",             label: "Dashboard" },
+      { to: "/net-worth",    label: "Net Worth"     },
+      { to: "/path-forward", label: "Path Forward"  },
     ],
   },
   {
@@ -269,6 +271,7 @@ function Layout() {
             <ErrorBoundary key={location.key}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/path-forward" element={<PathForward />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/transactions/:id" element={<TransactionDetail />} />

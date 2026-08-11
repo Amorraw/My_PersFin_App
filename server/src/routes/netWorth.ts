@@ -7,6 +7,7 @@ import { Debt } from '../models/Debt';
 import { Property } from '../models/Property';
 import { requireLogin } from '../middleware/requireLogin';
 import { LIABILITY_TYPES, ASSET_CASH_TYPES, ASSET_INVEST_TYPES } from '../utils/financeConstants';
+import { matchesTrackedDebt, debtNameSet } from '../utils/debtMatching';
 
 const router = Router();
 router.use(requireLogin);
@@ -20,7 +21,14 @@ export function calcNetWorth(accounts: any[], debts: any[], properties: any[]) {
 
   // Assets = non-liability accounts + real estate
   const assetAccounts  = accounts.filter(a => !LIABILITY_TYPES.has(a.type));
-  const liabAccounts   = accounts.filter(a =>  LIABILITY_TYPES.has(a.type));
+  const allLiabAccounts = accounts.filter(a => LIABILITY_TYPES.has(a.type));
+
+  // A liability account already tracked as a Debt (e.g. via Debts page or demo
+  // seeding, which creates a Debt for every liability account) must not also be
+  // counted via its raw Account.balance, or the same real-world debt gets summed
+  // twice — once in debtTotal, once in acctLiabTotal.
+  const trackedNames = debtNameSet(debts);
+  const liabAccounts = allLiabAccounts.filter(a => !matchesTrackedDebt(a.name, trackedNames));
 
   const accountAssets  = assetAccounts.reduce((s, a) => s + a.balance, 0);
   const totalAssets    = accountAssets + realEstate;

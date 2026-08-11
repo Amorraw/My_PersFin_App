@@ -144,7 +144,10 @@ router.post("/activate", async (req: Request, res: Response) => {
     await seedDataForUser(userId, profile, { years: years as 1 | 3 | 5 | 7 });
     await takeSnapshot(userId, profileIndex);
 
-    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex, demoHistoryYears: years });
+    // Reset the stale tier so the alert engine's next check doesn't compare
+    // this fresh profile's standing against the previous profile's — that
+    // would read as a false "your finances got worse" alert.
+    await User.findByIdAndUpdate(userId, { demoProfileIndex: profileIndex, demoHistoryYears: years, lastFinancialHealthTier: null });
     return res.json({ ok: true, message: `Profile "${profile.firstName}'s" data loaded (${years} year${years === 1 ? "" : "s"} of history). Reload to see it.`, profileIndex, years });
   } catch (err: any) {
     console.error("Demo activate error:", err);
@@ -173,7 +176,9 @@ router.post("/regenerate", async (req: Request, res: Response) => {
     await clearUserData(userId);
     await seedDataForUser(userId, profile, { years: years as 1 | 3 | 5 | 7 }); // Math.random + current date (defaults)
     await takeSnapshot(userId, user.demoProfileIndex);
-    await User.findByIdAndUpdate(userId, { demoHistoryYears: years });
+    // Freshly-regenerated random values could legitimately shift the tier —
+    // reset rather than let it read as a real "your finances changed" alert.
+    await User.findByIdAndUpdate(userId, { demoHistoryYears: years, lastFinancialHealthTier: null });
 
     return res.json({ ok: true, message: `New random dataset generated (${years} year${years === 1 ? "" : "s"} of history). Reload to see your fresh data.`, years });
   } catch (err: any) {
@@ -207,7 +212,7 @@ router.post("/clear", async (req: Request, res: Response) => {
   try {
     await clearUserData(userId);
     await DemoSnapshot.deleteOne({ userId });
-    await User.findByIdAndUpdate(userId, { demoProfileIndex: null });
+    await User.findByIdAndUpdate(userId, { demoProfileIndex: null, lastFinancialHealthTier: null });
     return res.json({ ok: true, message: "All data cleared. Your account is now blank." });
   } catch (err: any) {
     console.error("Demo clear error:", err);

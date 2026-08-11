@@ -6,6 +6,19 @@ import { Budget } from "../models/Budget";
 import { Transaction } from "../models/Transaction";
 import { TaxAccount } from "../models/TaxAccount";
 import { NetWorthSnapshot } from "../models/NetWorthSnapshot";
+import { User } from "../models/User";
+import { Debt } from "../models/Debt";
+import { getLiveFinancials } from "../utils/liveFinancials";
+import { financialHealthTier, FinancialHealthTier, HIGH_INTEREST_DEBT_APR } from "../utils/financeConstants";
+
+const TIER_ORDER: FinancialHealthTier[] = ["crisis", "struggling", "stable", "growing", "thriving"];
+const TIER_TITLES: Record<FinancialHealthTier, string> = {
+  crisis: "Crisis",
+  struggling: "Struggling",
+  stable: "Stable",
+  growing: "Growing",
+  thriving: "Thriving",
+};
 
 const NET_WORTH_MILESTONES = [10000, 25000, 50000, 100000, 250000, 500000, 1000000];
 
@@ -42,7 +55,44 @@ export async function runAlertEngine(userId: mongoose.Types.ObjectId) {
     checkTaxAccounts(userId),
     checkNetWorthMilestones(userId),
     checkSpendingSpike(userId),
+    checkFinancialHealthTier(userId),
   ]);
+}
+
+// Alert when overall financial health drops a tier (e.g. Stable -> Struggling).
+// Always persists the freshly-computed tier afterward so the comparison stays
+// accurate next run, whether it went up, down, or stayed the same.
+async function checkFinancialHealthTier(userId: mongoose.Types.ObjectId) {
+  const [user, live, debts] = await Promise.all([
+    User.findById(userId),
+    getLiveFinancials(userId),
+    Debt.find({ userId }),
+  ]);
+  if (!user) return;
+
+  const hasHighInterestDebt = debts.some((d) => d.interestRate >= HIGH_INTEREST_DEBT_APR);
+  const newTier = financialHealthTier({
+    netWorth: live.netWorth,
+    monthlySurplus: Math.max(0, live.monthlyCashFlow),
+    emergencyFundMonths: live.emergencyFundMonths,
+    hasHighInterestDebt,
+  });
+
+  const previousTier = user.lastFinancialHealthTier;
+  if (previousTier && TIER_ORDER.indexOf(newTier) < TIER_ORDER.indexOf(previousTier)) {
+    await upsertAlert(
+      userId,
+      "financial_health",
+      `Financial Health Dropped: ${TIER_TITLES[newTier]}`,
+      `Your overall financial standing moved from ${TIER_TITLES[previousTier]} to ${TIER_TITLES[newTier]}. Check Path Forward for a plan back to a stronger position.`,
+      newTier === "crisis" ? "critical" : "warning",
+      `tier-drop-${newTier}`
+    );
+  }
+
+  if (newTier !== previousTier) {
+    await User.findByIdAndUpdate(userId, { lastFinancialHealthTier: newTier });
+  }
 }
 
 // Alert critical (≤1 day) and warning (within reminder window) for upcoming bills

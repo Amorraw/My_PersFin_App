@@ -8,7 +8,8 @@ export type AlertCategory =
   | "budget"
   | "net_worth"
   | "spending"
-  | "automation";
+  | "automation"
+  | "financial_health";
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
@@ -27,7 +28,7 @@ const NotificationSchema = new Schema<INotification>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     category: {
       type: String,
-      enum: ["rrsp", "tfsa", "bill", "budget", "net_worth", "spending", "automation"],
+      enum: ["rrsp", "tfsa", "bill", "budget", "net_worth", "spending", "automation", "financial_health"],
       required: true,
     },
     title: { type: String, required: true },

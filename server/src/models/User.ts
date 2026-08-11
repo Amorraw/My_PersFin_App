@@ -1,5 +1,6 @@
 // Mongoose schema for app users: credentials, profile, and province preference
 import mongoose, { Schema, Document } from "mongoose";
+import type { FinancialHealthTier } from "../utils/financeConstants";
 
 export interface IUser extends Document {
   email: string;
@@ -13,6 +14,7 @@ export interface IUser extends Document {
   createdAt: Date;
   demoProfileIndex?: number;   // 1–10 when user has demo data loaded; undefined otherwise
   demoHistoryYears?: number;   // 1|3|5|7; years of history generated for the active demo profile
+  lastFinancialHealthTier?: FinancialHealthTier; // last tier seen by the alert engine, for degradation detection
 }
 
 const userSchema = new Schema<IUser>({
@@ -26,6 +28,7 @@ const userSchema = new Schema<IUser>({
   createdAt: { type: Date, default: Date.now },
   demoProfileIndex:  { type: Number, default: null },
   demoHistoryYears:  { type: Number, default: null },
+  lastFinancialHealthTier: { type: String, default: null },
 });
 
 export const User = mongoose.model<IUser>("User", userSchema);

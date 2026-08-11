@@ -5,6 +5,7 @@ import { Debt, IDebt } from "../models/Debt";
 import { Account } from "../models/Account";
 import { Transaction } from "../models/Transaction";
 import { requireAuth } from "../middleware/requireLogin";
+import { matchesTrackedDebt, debtNameSet } from "../utils/debtMatching";
 
 type Cadence = "monthly" | "biweekly";
 type DueScheduleType = "specific" | "monthly" | "biweekly";
@@ -291,17 +292,13 @@ router.get("/dashboard", async (req: Request, res: Response) => {
       type: { $in: LIABILITY_ACCOUNT_TYPES },
     }).lean();
 
-    const existingDebtNames = new Set(debts.map((d) => d.name.toLowerCase().trim()));
+    const existingDebtNames = debtNameSet(debts);
 
     type LiveAcct = { balance: number; interestRate: number; minimumPayment: number };
     const liveAccounts: LiveAcct[] = [];
 
     for (const acct of liabilityAccounts) {
-      const aName = acct.name.toLowerCase().trim();
-      const alreadyTracked = [...existingDebtNames].some(
-        (n) => n === aName || n.includes(aName) || aName.includes(n)
-      );
-      if (alreadyTracked) continue;
+      if (matchesTrackedDebt(acct.name, existingDebtNames)) continue;
 
       const balance = await calcLiabilityBalance(userId, (acct._id as any).toString());
       if (balance < 1) continue;
@@ -487,6 +484,7 @@ router.get("/detect-from-accounts", async (req: Request, res: Response) => {
 
     // Existing debts for duplicate detection
     const existingDebts = await Debt.find({ userId }).lean();
+    const existingDebtNamesForDetect = debtNameSet(existingDebts);
 
     const results = [];
 
@@ -508,11 +506,7 @@ router.get("/detect-from-accounts", async (req: Request, res: Response) => {
       const minPayment = amortizedPayment(balance, defaults.interestRate, defaults.termMonths);
 
       // Already imported if any existing debt shares a matching name
-      const aName = account.name.toLowerCase().trim();
-      const alreadyImported = existingDebts.some((d) => {
-        const dName = d.name.toLowerCase().trim();
-        return dName === aName || dName.includes(aName) || aName.includes(dName);
-      });
+      const alreadyImported = matchesTrackedDebt(account.name, existingDebtNamesForDetect);
 
       const institution = account.institution ?? null;
       results.push({

@@ -24,6 +24,7 @@ import categoriesRoutes from "./routes/categories";
 import taxRoutes from "./routes/tax";
 import goalsRoutes from "./routes/goals";
 import netWorthRoutes from "./routes/netWorth";
+import pathForwardRoutes from "./routes/pathForward";
 import billsRoutes from "./routes/bills";
 import propertiesRoutes from "./routes/properties";
 import gicRoutes from "./routes/gic";
@@ -147,6 +148,7 @@ async function main() {
   app.use("/api/tax-accounts", taxRoutes);
   app.use("/api/goals", goalsRoutes);
   app.use("/api/net-worth", netWorthRoutes);
+  app.use("/api/path-forward", pathForwardRoutes);
   app.use("/api/bills", billsRoutes);
   app.use("/api/properties", propertiesRoutes);
   app.use("/api/gic", gicRoutes);
