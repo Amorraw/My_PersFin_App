@@ -26,6 +26,13 @@ services:
       - key: SETUP_SECRET
         generateValue: true
 
+      # 32-byte AES-256-GCM key for encrypting stored Plaid tokens at rest.
+      # Must be base64-encoded and decode to exactly 32 bytes — Render's
+      # auto-generated values aren't guaranteed to fit that shape, so generate
+      # one yourself and paste it in: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+      - key: ENCRYPTION_KEY
+        sync: false
+
       # Set to the persfin-ml Render URL after the ML service deploys
       - key: ML_SERVICE_URL
         sync: false
